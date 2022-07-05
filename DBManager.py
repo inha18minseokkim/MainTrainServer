@@ -6,6 +6,7 @@ serverdb = None
 #sessiondb : 세션을 유지하기 위해 사용하는 inmemory DB
 #serverdb : 서버에 저장되어 있는 데이터들을 불러오는 db, mongodb atlas를 사용함
 #inmemorydb는 껐다 키면 사라지니 세션 유지용으로만 사용!!
+#dictionary key는 아래 값들을 명시적으로 사용 권장(오타 방지를 위해)
 KAKAOID = 'kakaoid'
 NICKNAME = 'nickname'
 APIKEY = 'apikey'
@@ -49,13 +50,30 @@ def serverDBinitiate():
     # secret : "한국투자 api secret String"
     # quantity : "현재 투자 설정 한 금액 Int"
     # model : "투자한 모델 파일 경로/이름 "
-    client = pymongo.MongoClient(
-        f"mongodb+srv://admin:{Declaration.serverDBPW}@cluster0.qbpab.mongodb.net/?retryWrites=true&w=majority")
+    client = pymongo.MongoClient( #실제 배포에서는 아래거 써야됨.
+        f"mongodb+srv://admin1:admin@cluster0.qbpab.mongodb.net/?retryWrites=true&w=majority")
+    # client = pymongo.MongoClient(
+    #     f"mongodb+srv://admin1:{Declaration.serverDBPW}@cluster0.qbpab.mongodb.net/?retryWrites=true&w=majority")
     serverdb = client.TradingDB
-    print("serverdb 초기화 완료")
+    print("serverdb 초기화 완료",serverdb)
 
+def createServerDummy():
+    global serverdb
+    serverdb.user.insert_one({KAKAOID: '12181577', NICKNAME: '김민석', APIKEY: 'asdf', SECRET: 'sec', QUANTITY: 1000000})
+def getUserInfoFromServer(kakaoid):
+    global serverdb
+    cursor = serverdb.user.find({KAKAOID:kakaoid})
+    res = list(cursor)
+    print(res[0])
+    return res[0]
+def isRegistered(kakaoid):
+    return
+def editUserInfo(kakaoid, dict):
+    return
 if __name__ == "__main__":#Unit test를 위한 공간
-    #serverDBinitiate()
-    sessionDBinitiate()
-    createDummyData()
-    print(isSessionAvailable('12181577'))
+    serverDBinitiate()
+    createServerDummy()
+    getUserInfoFromServer('12181577')
+    #sessionDBinitiate()
+    #createDummyData()
+    #print(isSessionAvailable('12181577'))

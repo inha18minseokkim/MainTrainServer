@@ -5,3 +5,4 @@ uvicorn
 finance-datareader
 pymongo
 pymongo_inmemory
+pymongo[srv]
