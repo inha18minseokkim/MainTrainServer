@@ -2,3 +2,6 @@ requests
 websockets
 asyncio
 uvicorn
+finance-datareader
+pymongo
+pymongo_inmemory

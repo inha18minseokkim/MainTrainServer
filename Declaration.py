@@ -4,14 +4,16 @@ appKey = "Not initiated"
 secret = "Not initiated"
 Base_URL = "https://openapivts.koreainvestment.com:29443"
 token = "Not initiated"
+serverDBPW = "Not initiated"
 def initiate():
-    global appKey,secret,token
+    global appKey,secret,token,serverDBPW
     # AppKey, Seccret 정보를 JSON에서 읽어서 Declaration 모듈에 저장
     print(f"시스템 시작")
     with open('secrets.json', 'r') as f:
         file = json.load(f)
         appKey = file['appKey']
         secret = file['secret']
+        serverDBPW = file['serverDBPW']
         print(f"키 값 가져오기 성공 appkey : {appKey} secret : {secret}")
     # 키 가져왔으면 서버로부터 보안인증키 발급받아야 함
     headers = {"content-type": "application/json"}

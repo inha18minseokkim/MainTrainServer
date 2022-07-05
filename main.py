@@ -5,7 +5,7 @@ import Stock_Price
 import Declaration
 app = FastAPI()
 
-@app.on_event("startup") #시작 시 실행되는 메소드
+@app.on_event("startup") #시작 시 실행되는 메소드 나중에 로그인으로 구현해야 함.
 async def on_app_start() -> None:
     Declaration.initiate()
 
