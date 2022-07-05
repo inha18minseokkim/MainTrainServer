@@ -1,11 +1,12 @@
 from typing import Optional
 from fastapi import APIRouter, Request, Response
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from loguru import logger
 import requests
 router = APIRouter()
 
 # 일단 임시로 카카오 api 키 받음
+# 127.0.0.1:8000/kakao 로 접속하면 로그인 나옴
 CLIENT_ID = 'fd9b44e80bfa7423f098d6ba45a87ee4'
 CLIENT_SECRET = 'WYOkF2Y5YAaw21FLlSfcOgHK6NT0PNfj'
 REDIRECT_URI = 'http://127.0.0.1:8000/auth'
@@ -65,7 +66,7 @@ async def kakaoAuth(response: Response, code: Optional[str]="NONE"):
     # error 발생
     if "error" in auth_info:
         logger.debug("error")
-        return {'message': 'authentication fail'}, 404
+        return JSONResponse(content={'message': 'authentication fail'}, status_code=404)
 
     user = oauth.userinfo("Bearer " + auth_info['access_token'])
     '''
@@ -107,6 +108,8 @@ async def kakaoAuth(response: Response, code: Optional[str]="NONE"):
     또는 response.set_cookie(key="kakao", value=uuid4())
     acess_token 을 세션키로 사용하게 되면 카카오 사용자 정보 요청 리퀘스트가 너무 많아짐
     따라서 랜덤 uuid 생성해서 세션키로 사용하는 것도 나쁘지 않음
+    1. 세션 만료시간 정해야함
+    2. 중복 로그인 괜찮은지 생각해 봐야함
 
     ##
 
