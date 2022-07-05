@@ -4,11 +4,12 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 import Stock_Price
 import Declaration
-from routers import investment,test
+from routers import investment,test,login
 
 app = FastAPI()
 app.include_router(investment.router, prefix='')
 app.include_router(test.router, prefix='')
+app.include_router(login.router, prefix='')
 
 request_id_contextvar = contextvars.ContextVar("request_id", default=None)
 
