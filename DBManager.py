@@ -35,8 +35,8 @@ def isSessionAvailable(kakaoid): #api를 호출 하기 전 해당 세션이 있�
     cursor = sessiondb.user.find({KAKAOID: kakaoid})
     res = list(cursor)
     #카카오아이디를 파라미터로 받아서 현재 세션db에 존재하면 1, 존재하지않으면 0 리턴
-    if len(res) == 0: return 0
-    else: return 1
+    if res: return 1
+    else: return 0
 
 
 
