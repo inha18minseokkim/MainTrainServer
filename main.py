@@ -1,26 +1,39 @@
-from fastapi import FastAPI
-import json,requests
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+import json,requests,random,uuid,contextvars,time
+from fastapi.responses import JSONResponse
+from loguru import logger
 import Stock_Price
 import Declaration
+from routers import investment,test
+
 app = FastAPI()
+app.include_router(investment.router, prefix='')
+app.include_router(test.router, prefix='')
+
+request_id_contextvar = contextvars.ContextVar("request_id", default=None)
 
 @app.on_event("startup") #시작 시 실행되는 메소드 나중에 로그인으로 구현해야 함.
 async def on_app_start() -> None:
     Declaration.initiate()
 
-@app.get("/getStockInfo/{code}")
-async def getStockInfo(code):
-    return Stock_Price.getStockInfo(code)
-@app.get("/userinfo")
-async def getUserInfo():
-    return {"appkey": Declaration.appKey, "secret":Declaration.secret, "token": Declaration.token}
+@app.middleware("http")
+async def request_middleware(request: Request, call_next):
+    start_time = time.time()
+    request_id = str(uuid.uuid4())[24:]
+    request_id_contextvar.set(request_id)
+    ip = request['client'][0]
+    port = request['client'][1]
+    client = f"{ip}:{port}"
+    logger.debug(f"[{client}][{request_id}] Request Started")
+    
+    try:
+        return await call_next(request)
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+    except Exception as e:
+        logger.debug(f"[{client}][{request_id}] Request Failed: {e}")
+        return JSONResponse(content={"Success": False}, status_code=500)
 
-
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
+    finally:
+        assert request_id_contextvar.get() == request_id
+        process_time = time.time() - start_time
+        logger.debug(f"[{client}][{request_id}] Request Ended {process_time} Seconds")
