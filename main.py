@@ -19,21 +19,23 @@ async def on_app_start() -> None:
 @app.middleware("http")
 async def request_middleware(request: Request, call_next):
     start_time = time.time()
-    request_id = str(uuid.uuid4())[24:]
+    request_id = str(uuid.uuid4())
     request_id_contextvar.set(request_id)
+    
     ip = request['client'][0]
     port = request['client'][1]
     client = f"{ip}:{port}"
-    logger.debug(f"[{client}][{request_id}] Request Started")
+
+    logger.debug(f"[{request_id}] Request Started")
     
     try:
         return await call_next(request)
 
     except Exception as e:
-        logger.debug(f"[{client}][{request_id}] Request Failed: {e}")
+        logger.debug(f"[{request_id}] Request Failed: {e}")
         return JSONResponse(content={"Success": False}, status_code=500)
 
     finally:
         assert request_id_contextvar.get() == request_id
         process_time = time.time() - start_time
-        logger.debug(f"[{client}][{request_id}] Request Ended {process_time} Seconds")
+        logger.debug(f"[{request_id}] Request Ended {process_time} Seconds")
