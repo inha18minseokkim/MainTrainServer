@@ -6,6 +6,12 @@ serverdb = None
 #sessiondb : 세션을 유지하기 위해 사용하는 inmemory DB
 #serverdb : 서버에 저장되어 있는 데이터들을 불러오는 db, mongodb atlas를 사용함
 #inmemorydb는 껐다 키면 사라지니 세션 유지용으로만 사용!!
+KAKAOID = 'kakaoid'
+NICKNAME = 'nickname'
+APIKEY = 'apikey'
+SECRET = 'secret'
+QUANTITY = 'quantity'
+MODEL = 'model'
 def sessionDBinitiate(): #로컬 저장소에 있는 inmemory DB
     global sessiondb
     #세션을 저장하는 용도로만 사용
@@ -17,6 +23,17 @@ def sessionDBinitiate(): #로컬 저장소에 있는 inmemory DB
     # **저장되어있는 카카오아이디 -> 현재 세션 유지중, 저장안되어있음 -> 세션 없는것
     client = pymongo_inmemory.MongoClient()
     sessiondb = client.sessionDB
+    print("sessiondb 초기화 완료",sessiondb)
+
+def createDummyData(): #Unit test용 페이크 데이터 하나 만들어서 세션db에 넣음
+    global sessiondb
+    sessiondb.user.insert_one({KAKAOID:'12181577',NICKNAME:'김민석',APIKEY:'asdf',SECRET:'sec',QUANTITY: 1000000})
+
+def isSessionAvailable(kakaoid): #api를 호출 하기 전 해당 세션이 있는지
+    global sessiondb
+    cursor = sessiondb.user.find({KAKAOID: kakaoid})
+    print(list(cursor))
+
 
 
 def serverDBinitiate():
@@ -30,7 +47,12 @@ def serverDBinitiate():
     # quantity : "현재 투자 설정 한 금액 Int"
     # model : "투자한 모델 파일 경로/이름 "
     client = pymongo.MongoClient(
-        f"mongodb+srv://admin:{Declaration.modelDBPW}@cluster0.qbpab.mongodb.net/?retryWrites=true&w=majority")
+        f"mongodb+srv://admin:{Declaration.serverDBPW}@cluster0.qbpab.mongodb.net/?retryWrites=true&w=majority")
     serverdb = client.TradingDB
+    print("serverdb 초기화 완료")
 
 if __name__ == "__main__":#Unit test를 위한 공간
+    #serverDBinitiate()
+    sessionDBinitiate()
+    createDummyData()
+    print(isSessionAvailable('12181577'))
