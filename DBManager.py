@@ -8,6 +8,13 @@ serverdb = None
 #inmemorydb는 껐다 키면 사라지니 세션 유지용으로만 사용!!
 def sessionDBinitiate(): #로컬 저장소에 있는 inmemory DB
     global sessiondb
+    #세션을 저장하는 용도로만 사용
+    # kakaoid : "카카오 아이디 String"
+    # nickname : "사용자 닉네임 String"
+    # apikey : "한국투자 apikey String"
+    # secret : "한국투자 api secret String"
+    # quantity : "현재 투자 설정 한 금액 Int"
+    # **저장되어있는 카카오아이디 -> 현재 세션 유지중, 저장안되어있음 -> 세션 없는것
     client = pymongo_inmemory.MongoClient()
     sessiondb = client.sessionDB
 
@@ -25,3 +32,5 @@ def serverDBinitiate():
     client = pymongo.MongoClient(
         f"mongodb+srv://admin:{Declaration.modelDBPW}@cluster0.qbpab.mongodb.net/?retryWrites=true&w=majority")
     serverdb = client.TradingDB
+
+if __name__ == "__main__":#Unit test를 위한 공간
