@@ -6,3 +6,6 @@ finance-datareader
 pymongo
 pymongo_inmemory
 pymongo[srv]
+fastapi
+loguru
+bs4
