@@ -13,6 +13,7 @@ APIKEY = 'apikey'
 SECRET = 'secret'
 QUANTITY = 'quantity'
 MODEL = 'model'
+TOKEN = 'token'
 def sessionDBinitiate(): #로컬 저장소에 있는 inmemory DB
     global sessiondb
     #세션을 저장하는 용도로만 사용
@@ -21,6 +22,7 @@ def sessionDBinitiate(): #로컬 저장소에 있는 inmemory DB
     # apikey : "한국투자 apikey String"
     # secret : "한국투자 api secret String"
     # quantity : "현재 투자 설정 한 금액 Int"
+    # token : "카카오에서 받은 토큰을 저장 String"
     # **저장되어있는 카카오아이디 -> 현재 세션 유지중, 저장안되어있음 -> 세션 없는것
     client = pymongo_inmemory.MongoClient()
     sessiondb = client.sessionDB
@@ -30,13 +32,14 @@ def createDummyData(): #Unit test용 페이크 데이터 하나 만들어서 세
     global sessiondb
     sessiondb.user.insert_one({KAKAOID:'12181577',NICKNAME:'김민석',APIKEY:'asdf',SECRET:'sec',QUANTITY: 1000000})
 
-def createSession(kakaoid): #서버에 있는 정보를 갖고 와서 세션을 만듬
+def createSession(kakaoid,token): #서버에 있는 정보를 갖고 와서 세션을 만듬
     global sessiondb,serverdb
     cursor = serverdb.user.find({KAKAOID: kakaoid})
     res = list(cursor)
     if len(res) == 0:  # 정보가 없으면 0을 리턴
         return {'code': 0}
     res = res[0]
+    res[TOKEN] = token
     sessiondb.user.insert_one(res)
     return {'code' : 1}
 def isSessionAvailable(kakaoid): #api를 호출 하기 전 해당 세션이 있는지
