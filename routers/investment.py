@@ -5,6 +5,9 @@ from typing import Union
 from pydantic import BaseModel
 from enum import Enum
 
+import Declaration
+import Stock_Price
+
 router = APIRouter()
 
 @router.get("/getStockInfo/{code}")
