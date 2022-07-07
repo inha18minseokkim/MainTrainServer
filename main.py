@@ -5,6 +5,9 @@ from loguru import logger
 import Stock_Price
 import Declaration
 from routers import investment,test,login
+from pydantic import BaseModel
+
+whilteList = ['/login', '/auth', ]
 
 app = FastAPI()
 app.include_router(investment.router, prefix='')
@@ -28,7 +31,16 @@ async def request_middleware(request: Request, call_next):
     client = f"{ip}:{port}"
 
     logger.debug(f"[{request_id}] Request Started")
-    
+
+
+    ''' 모든 api에 세션 인증 일괄 적용
+    if reuqest['path'] not in whilteList:
+        body = await request.json()
+        seesionId = body.get('access')
+        if DBManager.getSessionInfo(seesionId) == 0:
+            return JSONResponse(content={"error": "Unauthorized"}, status_code=401)
+    '''
+
     try:
         return await call_next(request)
 
