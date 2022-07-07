@@ -2,6 +2,7 @@ import requests,json
 
 appKey = "Not initiated"
 secret = "Not initiated"
+
 Base_URL = "https://openapivts.koreainvestment.com:29443"
 token = "Not initiated"
 serverDBPW = "Not initiated"

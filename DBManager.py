@@ -7,6 +7,8 @@ serverdb = None
 #serverdb : 서버에 저장되어 있는 데이터들을 불러오는 db, mongodb atlas를 사용함
 #inmemorydb는 껐다 키면 사라지니 세션 유지용으로만 사용!!
 #dictionary key는 아래 값들을 명시적으로 사용 권장(오타 방지를 위해)
+#데이터베이스 api를 호출 하면 항상 code를 체크해 주세요
+#code가 0이면 뭔가가 안됐다는 것(db에 유저 정보가 없음)
 KAKAOID = 'kakaoid'
 NICKNAME = 'nickname'
 APIKEY = 'apikey'
@@ -14,6 +16,8 @@ SECRET = 'secret'
 QUANTITY = 'quantity'
 MODEL = 'model'
 TOKEN = 'token'
+CANO = 'cano'
+ACNT = 'acnt_prdt_cd'
 def sessionDBinitiate(): #로컬 저장소에 있는 inmemory DB
     global sessiondb
     #세션을 저장하는 용도로만 사용
@@ -23,6 +27,8 @@ def sessionDBinitiate(): #로컬 저장소에 있는 inmemory DB
     # secret : "한국투자 api secret String"
     # quantity : "현재 투자 설정 한 금액 Int"
     # token : "카카오에서 받은 토큰을 저장 String"
+    # cano : "계좌번호 체계(8-2)의 앞 8자리, 종합계좌번호"
+    # acnt : "계좌번호 체계(8-2)의 뒤 2자리, 계좌상품코드"
     # **저장되어있는 카카오아이디 -> 현재 세션 유지중, 저장안되어있음 -> 세션 없는것
     client = pymongo_inmemory.MongoClient()
     sessiondb = client.sessionDB
@@ -30,7 +36,7 @@ def sessionDBinitiate(): #로컬 저장소에 있는 inmemory DB
 
 def createDummyData(): #Unit test용 페이크 데이터 하나 만들어서 세션db에 넣음
     global sessiondb
-    sessiondb.user.insert_one({KAKAOID:'12181577',NICKNAME:'김민석',APIKEY:'asdf',SECRET:'sec',QUANTITY: 1000000})
+    sessiondb.user.insert_one({KAKAOID:'12181577',NICKNAME:'김민석',APIKEY:'asdf',SECRET:'sec', CANO : '50067576', ACNT : '01', QUANTITY: 1000000})
 
 def createSession(kakaoid,token): #서버에 있는 정보를 갖고 와서 세션을 만듬
     global sessiondb,serverdb
@@ -98,7 +104,7 @@ def createAccount(nickname,apikey,secret):
 
 def createServerDummy():
     global serverdb
-    serverdb.user.insert_one({KAKAOID: '12181577', NICKNAME: '김민석', APIKEY: 'asdf', SECRET: 'sec', QUANTITY: 1000000})
+    serverdb.user.insert_one({KAKAOID: '12181577', NICKNAME: '김민석', APIKEY: Declaration.appKey, SECRET: Declaration.secret, CANO : '50067576', ACNT : '01', QUANTITY: 1000000})
 
 
 def getUserInfoFromServer(kakaoid):
