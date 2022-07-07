@@ -29,7 +29,7 @@ def initiate():
     print(f"token 생성 완료, 현재 계정 정보 {appKey} {secret} {token}")
 
 
-def getHash(data): #api post 요청 시 사용 할 hash 함수
+def getHashTest(data): #api post 요청 시 사용 할 hash 함수 Test용
     path = "uapi/hashkey"
     url = f"{Base_URL}/{path}"
     headers = {
@@ -39,3 +39,4 @@ def getHash(data): #api post 요청 시 사용 할 hash 함수
     }
     res = requests.post(url,headers=headers,data=json.dumps(data)).json()
     return res['HASH']
+
