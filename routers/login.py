@@ -47,7 +47,7 @@ class Oauth:
 
 
 # 아직 클라이언트가 없으므로 서버에서 로그인 페이지 생성
-@router.get('/kakao')
+@router.get('/login')
 def kakao():
     REST_API_KEY = "fd9b44e80bfa7423f098d6ba45a87ee4"
     REDIRECT_URI = "http://127.0.0.1:8000/auth"
@@ -121,7 +121,7 @@ async def kakaoAuth(response: Response, code: Optional[str]="NONE"):
 
 
 # 나중에 Oauth 에 포함시켜야 할 함수
-@router.get('/kakaoLogout')
+@router.get('/logout')
 def kakaoLogout(request: Request, response: Response):
 
     url = "https://kapi.kakao.com/v1/user/unlink"
