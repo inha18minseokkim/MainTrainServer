@@ -7,7 +7,8 @@ import Declaration
 from routers import investment,test,login
 from pydantic import BaseModel
 
-whilteList = ['/login', '/auth', ]
+# session 인증 안받는 api 목록
+whilteList = ['/login', '/auth', ] 
 
 app = FastAPI()
 app.include_router(investment.router, prefix='')
@@ -33,7 +34,8 @@ async def request_middleware(request: Request, call_next):
     logger.debug(f"[{request_id}] Request Started")
 
 
-    ''' 모든 api에 세션 인증 일괄 적용
+    # 모든 api에 세션 인증 일괄 적용
+    '''
     if reuqest['path'] not in whilteList:
         body = await request.json()
         seesionId = body.get('access')
