@@ -10,6 +10,7 @@ serverdb = None
 #데이터베이스 api를 호출 하면 항상 code를 체크해 주세요
 #code가 0이면 뭔가가 안됐다는 것(db에 유저 정보가 없음)
 KAKAOID = 'kakaoid'
+SESSIONID = 'sessionid'
 LOGINTOKEN = 'logintoken'
 NICKNAME = 'nickname'
 APIKEY = 'apikey'
@@ -23,6 +24,7 @@ def sessionDBinitiate(): #로컬 저장소에 있는 inmemory DB
     global sessiondb
     #세션을 저장하는 용도로만 사용
     # kakaoid : "카카오 아이디 String"
+    # sessionid : "세션을 식별하는 데 사용하는 id"
     # nickname : "사용자 닉네임 String"
     # apikey : "한국투자 apikey String"
     # secret : "한국투자 api secret String"
@@ -38,7 +40,7 @@ def sessionDBinitiate(): #로컬 저장소에 있는 inmemory DB
 
 def createDummyData(): #Unit test용 페이크 데이터 하나 만들어서 세션db에 넣음
     global sessiondb
-    sessiondb.user.insert_one({KAKAOID:'12181577',NICKNAME:'김민석',
+    sessiondb.user.insert_one({KAKAOID:'12181577',SESSIONID:"1971301676",NICKNAME:'김민석',
                                APIKEY:Declaration.appKey,SECRET:Declaration.secret,
                                CANO: '50067576', ACNT: '01',
                                TOKEN: Declaration.token, LOGINTOKEN: 'TMP',
@@ -97,6 +99,8 @@ def serverDBinitiate():
     # secret : "한국투자 api secret String"
     # quantity : "현재 투자 설정 한 금액 Int"
     # model : "투자한 모델 파일 경로/이름 "
+    # cano : "계좌번호 체계(8-2)의 앞 8자리, 종합계좌번호"
+    # acnt : "계좌번호 체계(8-2)의 뒤 2자리, 계좌상품코드"
     client = pymongo.MongoClient( #실제 배포에서는 아래거 써야됨.
         f"mongodb+srv://admin1:admin@cluster0.qbpab.mongodb.net/?retryWrites=true&w=majority")
     # client = pymongo.MongoClient(
