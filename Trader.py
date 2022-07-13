@@ -37,7 +37,7 @@ def buyMarketPrice(kakaoid,code,quantity): #현금 주식 매입 주문
         "custtype":"P",
         "hashkey": getHash(cursession[DBManager.APIKEY],cursession[DBManager.SECRET],data)
     }
-    print(cursession[DBManager.CANO],cursession[DBManager.ACNT])
+    print(cursession[DBManager.CANO],cursession[DBManager.ACNT],data['CANO'],data['ACNT_PRDT_CD'])
     path = "/uapi/domestic-stock/v1/trading/order-cash"
     url = f"{Declaration.Base_URL}/{path}"
     res = requests.post(url, headers=headers, data = json.dumps(data)).json()
