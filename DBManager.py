@@ -1,6 +1,7 @@
 import pymongo as pymongo
 import pymongo_inmemory
 import Declaration
+from ast import literal_eval
 sessiondb = None
 serverdb = None
 #sessiondb : 세션을 유지하기 위해 사용하는 inmemory DB
@@ -20,6 +21,7 @@ MODEL = 'model'
 TOKEN = 'token'
 CANO = 'cano'
 ACNT = 'acnt_prdt_cd'
+STKLST = 'stocklist'
 def sessionDBinitiate(): #로컬 저장소에 있는 inmemory DB
     global sessiondb
     #세션을 저장하는 용도로만 사용
@@ -87,8 +89,16 @@ def editSession(kakaoid,dict):
     values = {"$set": dict}
     sessiondb.user.update_one(idquery, values)
     return {'code': 1}
-
-
+def getStockRatio(kakaoid):#kakaoid유저가 설정해놓은 주가 비율을 가져옴
+    global serverdb
+    cursor = serverdb.user.find({KAKAOID: kakaoid})
+    res = list(cursor)
+    if len(res) == 0:  # 정보가 없으면 0을 리턴
+        return {'code': 0}
+    res = {k:float(v) for k,v in dict(literal_eval(res[0][STKLST])).items()}
+    res['code'] = 1
+    print('kakaoid에 대한 주가 비율 정보를 요청함',res)
+    return res
 def serverDBinitiate():
     global serverdb
     # db서버에서 클라이언트 불러옴 db변수를 통해 클라이언트에 접근 ㄱㄱ
@@ -101,6 +111,7 @@ def serverDBinitiate():
     # model : "투자한 모델 파일 경로/이름 "
     # cano : "계좌번호 체계(8-2)의 앞 8자리, 종합계좌번호"
     # acnt : "계좌번호 체계(8-2)의 뒤 2자리, 계좌상품코드"
+    # stocklist : 주가 설정된 비율 { "005930" : "0.5", "003550" : "0.3", "091170" : "0.2"} 이렇게 json으로 저장
     client = pymongo.MongoClient( #실제 배포에서는 아래거 써야됨.
         f"mongodb+srv://admin1:admin@cluster0.qbpab.mongodb.net/?retryWrites=true&w=majority")
     # client = pymongo.MongoClient(
@@ -109,14 +120,17 @@ def serverDBinitiate():
     print("serverdb 초기화 완료",serverdb)
 
     #서버의 계정 생성
-def createAccount(nickname,apikey,secret):
+def createAccount(kakaoid,nickname,apikey,secret,cano,acnt,quantity=0):
     global serverdb
-    serverdb.user.insert_one({KAKAOID: '12181577', NICKNAME: '김민석', APIKEY: 'asdf', SECRET: 'sec', QUANTITY: 0})
+    serverdb.user.insert_one({KAKAOID: kakaoid, NICKNAME: nickname, APIKEY: apikey, SECRET: secret, QUANTITY: quantity
+                              ,CANO : cano, ACNT : acnt})
+    return {'code': 1}
 
 def createServerDummy():
     global serverdb
     serverdb.user.insert_one({KAKAOID: '12181577', NICKNAME: '김민석', APIKEY: Declaration.appKey,
-                              SECRET: Declaration.secret, CANO : '50067576', ACNT : '01', QUANTITY: 1000000})
+                              SECRET: Declaration.secret, CANO : '50067576', ACNT : '01', QUANTITY: 1000000,
+                              STKLST : '{"005930":"0.5","003550":"0.3","091170":"0.2"}'})
 
 
 def getUserInfoFromServer(kakaoid):
@@ -155,15 +169,14 @@ def delUserInfo(kakaoid):
     return {'code' : 1}
 
 if __name__ == "__main__":#Unit test를 위한 공간
-    #serverDBinitiate()
-    #createServerDummy()
-    #editUserInfo('121815772',{NICKNAME:'asdfasdf'})
-    #delUserInfo('12181577')
-    #print(getUserInfoFromServer('12181577'))
-    #print(getUserInfoFromServer('12181527'))
-
+    Declaration.initiate()
     sessionDBinitiate()
     serverDBinitiate()
-    createSession('12181577')
-    editSession('12181577',{NICKNAME : '더미더미'})
+    #createServerDummy()
+    createSession('12181577','tokensample')
+    #editUserInfo('12181577',{NICKNAME:'김민석kms'})
+    #print(getUserInfoFromServer('12181577'))
+    #print(getUserInfoFromServer('12181527'))
     print(getSessionInfo('12181577'))
+    print(getStockRatio('12181577'))
+    #delUserInfo('12181577')

@@ -1,0 +1,70 @@
+#세션DB 스키마
+# kakaoid : "카카오 아이디 String"
+# sessionid : "세션을 식별하는 데 사용하는 id"
+# nickname : "사용자 닉네임 String"
+# apikey : "한국투자 apikey String"
+# secret : "한국투자 api secret String"
+# quantity : "현재 투자 설정 한 금액 Int"
+# token : "한국투자에서 받은 토큰 String"
+# logintoken : "카카오에서 받은 세션용 토큰 String"
+# cano : "계좌번호 체계(8-2)의 앞 8자리, 종합계좌번호"
+# acnt : "계좌번호 체계(8-2)의 뒤 2자리, 계좌상품코드"
+
+#서버DB 스키마
+# kakaoid : "카카오 아이디 String"
+# nickname : "사용자 닉네임 String"
+# apikey : "한국투자 apikey String"
+# secret : "한국투자 api secret String"
+# quantity : "현재 투자 설정 한 금액 Int"
+# model : "투자한 모델 파일 경로/이름 "
+# cano : "계좌번호 체계(8-2)의 앞 8자리, 종합계좌번호"
+# acnt : "계좌번호 체계(8-2)의 뒤 2자리, 계좌상품코드"
+# stocklist : 주가 설정된 비율 { "005930" : "0.5", "003550" : "0.3", "091170" : "0.2"} 이렇게 json으로 저장
+
+-sessionDBinitiate()
+    로컬 저장소에 세션들을 저장하는 DB모듈입니다. 서버 실행 시 시작해줘야 함.
+
+-createDummyData()
+    유닛테스트,디버깅용 함수입니다. 서비스에서 사용하지 않습니다.
+
+-createSession(kakaoid,token)
+    kakaoid와 token을 받고, DB에서 kakaoid에 해당하는 정보들을 가져와서
+    session용 db에 저장합니다. 성공시 {'code': 1} 리턴, 실패시 0 리턴
+
+-isSessionAvailable(kakaoid)
+    kakaoid에 해당하는 세션이 현재 인메모리db에 저장되어있는지(세션이 있는지) 확인용입니다
+    존재시 {'code':1} 리턴, 실패시 0리턴
+
+-getSessionInfo(kakaoid)
+    kakaoid 세션에 대한 정보를 리턴합니다. 만약에 인메모리db에 세션이 없다면, {'code':0} 를 리턴합니다
+    성공 시 DBManager.py에 명세되어있는 키:값 쌍이 리턴되고, 이 때 'code'값은 1입니다.
+
+-editSession(kakaoid,dict)
+    kakaoid에 해당하는 세션 정보를 바꿉니다. dict는 딕셔너리 형태로, {"바꿀 키 값" : "바꿀 값", }형식으로 써주시면 됩니다.
+    ex) {DBManager.NICKNAME : '바꿀 닉네임'}
+    세션이 유지되고 있지 않아서 바꾸기에 실패하면 {'code':0}을 리턴합니다.
+    제대로 바뀌었다면 {'code':1}을 리턴합니다.
+-editUserInfo(kakaoid, dict)
+    위 거랑 비슷한데 순서만 다르네요 이걸 왜만들었지??
+
+-getStockRatio(kakaoid)
+    kakaoid에 저장되어 있는 주가 비율을 리턴합니다. 딕셔너리 형태로 리턴됩니다.
+    서버에 kakaoid에 해당하는 데이터가 없으면 {'code':0}을 리턴합니다
+    제대로 리턴되었다면 {'code':1}값과 함께 {'종목코드,String':'종목비율,float'}들이 리턴됩니다.
+
+-serverDBinitiate()
+    메인 서버와  DB서버를 연결하는 동작입니다. 서버 실행시 실행되어야 합니다.
+
+-createAccount(kakaoid,nickname,apikey,secret,cano,acnt,quantity=0)
+    계정을 생성할 때 사용하는 함수입니다.
+
+-createServerDummy()
+    유닛테스트시 사용하는 임시 변수 생성용입니다. 함부로 사용하지 마세요
+
+-getUserInfoFromServer(kakaoid)
+    로그인/회원가입시 사용할 기능입니다. kakaoid에 해당하는 데이터가 없다면 {'code':0} 리턴 -> 회원가입 필요
+    데이터가 있다면 {'code':1}과 함께 데이터들을 리턴합니다. 이 데이터들로 세션을 만들면 됩니다.
+
+-delUserInfo(kakaoid)
+    회원탈퇴시 사용합니다. kakaoid에 해당하는 유저의 정보를 db에서 삭제합니다. 만약 kakaoid에 해당하는 정보가 없으면 {'code':0} 리턴->아무일도 안일어남
+    삭제가 되었으면 {'code':1}
