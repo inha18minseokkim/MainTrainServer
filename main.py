@@ -8,7 +8,7 @@ from routers import investment,test,login
 from pydantic import BaseModel
 
 # session 인증 안받는 api 목록
-whilteList = ['/login', '/auth', ] 
+whiteList = ['/login', '/auth', ] 
 
 app = FastAPI()
 app.include_router(investment.router, prefix='')
