@@ -9,3 +9,5 @@ pymongo[srv]
 fastapi
 loguru
 bs4
+dependency_injector
+pydantic

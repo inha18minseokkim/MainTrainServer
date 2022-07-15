@@ -1,6 +1,7 @@
 import pymongo as pymongo
 import pymongo_inmemory
 import Declaration
+import pydantic
 from ast import literal_eval
 sessiondb = None
 serverdb = None
@@ -31,7 +32,7 @@ class ServerDBManager:
         self.serverdb = self.client.TradingDB
         print("serverdb 초기화 완료", serverdb)
 
-    def createAccount(self, kakaoid, nickname, apikey, secret, cano, acnt, quantity=0):
+    def createAccount(self, kakaoid: str, nickname: str, apikey: str, secret: str, cano: str, acnt: str, quantity=0):
         if self.getUserInfoFromServer(kakaoid)['code'] == 1:#서버에 해당 유저가 있으면 계정 생성 못함
             print("createAccount",kakaoid,"계정 정보가 이미 있으므로 계정생성 못함")
             return {'code':0}
@@ -45,7 +46,7 @@ class ServerDBManager:
                                   SECRET: Declaration.secret, CANO: '50067576', ACNT: '01', QUANTITY: 1000000,
                                   STKLST: '{"005930":"0.5","003550":"0.3","091170":"0.2"}'})
 
-    def getUserInfoFromServer(self, kakaoid):
+    def getUserInfoFromServer(self, kakaoid: str):
         # {'_id': ObjectId('62c3ed0a991191142d3d56fc'), 'kakaoid': '12181577',
         # 'nickname': '김민석', 'apikey': 'asdf', 'secret': 'sec', 'quantity': 1000000, 'code': 1} ->kakaoid가 있을 경우
         # {'code': 0} -> kakaoid가 없을 경우
@@ -57,19 +58,19 @@ class ServerDBManager:
         res['code'] = 1
         return res
 
-    def editUserInfo(self, kakaoid, dict, sessionmanager):
+    def editUserInfo(self, kakaoid: str, dic: dict, sessionmanager: str):
         # dict = { NICKNAME : '바꿀 닉네임' } 으로 전달하면 해당 요소를 바꿈
         res = self.getUserInfoFromServer(kakaoid)['code']
         if res == 0:
             print('editUserInfo : 해당 유저 찾을 수 없음', kakaoid)
             return {'code': 0}
         idquery = {KAKAOID: kakaoid}
-        values = {"$set": dict}
+        values = {"$set": dic}
         self.serverdb.user.update_one(idquery, values)
-        sessionmanager.editSession(kakaoid, dict)
+        sessionmanager.editSession(kakaoid, dic)
         return {'code': 1}
 
-    def delUserInfo(self,kakaoid):
+    def delUserInfo(self,kakaoid: str):
         # 회원탈퇴시 회원정보 삭제
         if self.getUserInfoFromServer(kakaoid)['code'] == 0:
             print('delUserInfo : 해당 유저 찾을 수 없음', kakaoid)
@@ -78,7 +79,7 @@ class ServerDBManager:
         self.serverdb.user.delete_one(idquery)
         return {'code': 1}
 
-    def getStockRatio(self, kakaoid):  # kakaoid유저가 설정해놓은 주가 비율을 가져옴
+    def getStockRatio(self, kakaoid: str):  # kakaoid유저가 설정해놓은 주가 비율을 가져옴
         cursor = self.serverdb.user.find({KAKAOID: kakaoid})
         res = list(cursor)
         if len(res) == 0:  # 정보가 없으면 0을 리턴
@@ -101,7 +102,7 @@ class SessionDBManager:
                                    TOKEN: Declaration.token, LOGINTOKEN: 'TMP',
                                    CANO: '50067576', ACNT: '01',
                                    QUANTITY: 1000000})
-    def createSession(self, kakaoid, token, serverdb):  # 서버에 있는 정보를 갖고 와서 세션을 만듬
+    def createSession(self, kakaoid: str, token: str, serverdb: ServerDBManager):  # 서버에 있는 정보를 갖고 와서 세션을 만듬
         cursor = serverdb.getUserInfoFromServer(kakaoid)
         print(kakaoid,'에 대한 세션 생성')
         res = cursor
@@ -113,7 +114,7 @@ class SessionDBManager:
         print("세션생성 완료",res)
         return {'code': 1}
 
-    def isSessionAvailable(self,kakaoid):  # api를 호출 하기 전 해당 세션이 있는지
+    def isSessionAvailable(self,kakaoid: str):  # api를 호출 하기 전 해당 세션이 있는지
         cursor = self.sessiondb.user.find({KAKAOID: kakaoid})
         res = list(cursor)
         # 카카오아이디를 파라미터로 받아서 현재 세션db에 존재하면 1, 존재하지않으면 0 리턴
@@ -122,7 +123,7 @@ class SessionDBManager:
         else:
             return {'code': 1}
 
-    def getSessionInfo(self, kakaoid):  # 현재 세션에 대한 정보 리턴
+    def getSessionInfo(self, kakaoid: str):  # 현재 세션에 대한 정보 리턴
         cursor = self.sessiondb.user.find({KAKAOID: kakaoid})
         res = list(cursor)
         if len(res) == 0:
@@ -131,7 +132,7 @@ class SessionDBManager:
         res['code'] = 1
         return res
     # 데이터 일관성 유지를 위해 세션 수정은 없애고 서버에서만 사용하는걸로 하겠습니다. 이 함수는 쓰지마세요
-    def editSession(self, kakaoid, dict):
+    def editSession(self, kakaoid: str, dic: dict):
         # dict = { NICKNAME : '바꿀 닉네임' } 으로 전달하면 해당 요소를 바꿈
         ############################절대로 단독으로 실행하지 마세요###############################
         ############################서버DB에서 업데이트 후 자동으로 실행됨#########################
@@ -140,7 +141,7 @@ class SessionDBManager:
             print('editUserInfo : 해당 유저 찾을 수 없음', kakaoid)
             return {'code': 0}
         idquery = {KAKAOID: kakaoid}
-        values = {"$set": dict}
+        values = {"$set": dic}
         self.sessiondb.user.update_one(idquery, values)
         return {'code': 1}
 

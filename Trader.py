@@ -2,6 +2,7 @@ import Declaration
 import DBManager
 import requests
 import json
+from dependency_injector.providers import Singleton
 def getHash(apikey,secret,data): #api post 요청 시 사용 할 hash 함수
     #단독으로 사용하지 마세요. 세션이 없다는 조건을 guard 하지 않음
     print('다음 정보를 hash',apikey,secret,data["CANO"],data["ACNT_PRDT_CD"])
@@ -97,4 +98,4 @@ if __name__ == "__main__":
     DBManager.sessionDBinitiate()
     #DBManager.createDummyData()
     DBManager.createSession('12181577','sample token')
-    print(sellMarketPrice('12181577','005930',1))
+    #print(sellMarketPrice('12181577','005930',1))
