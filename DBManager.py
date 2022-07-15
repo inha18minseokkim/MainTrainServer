@@ -32,6 +32,9 @@ class ServerDBManager:
         print("serverdb 초기화 완료", serverdb)
 
     def createAccount(self, kakaoid, nickname, apikey, secret, cano, acnt, quantity=0):
+        if self.getUserInfoFromServer(kakaoid)['code'] == 1:#서버에 해당 유저가 있으면 계정 생성 못함
+            print("createAccount",kakaoid,"계정 정보가 이미 있으므로 계정생성 못함")
+            return {'code':0}
         self.serverdb.user.insert_one(
             {KAKAOID: kakaoid, NICKNAME: nickname, APIKEY: apikey, SECRET: secret, QUANTITY: quantity
                 , CANO: cano, ACNT: acnt})
@@ -54,15 +57,16 @@ class ServerDBManager:
         res['code'] = 1
         return res
 
-    def editUserInfo(self, kakaoid, dict):
+    def editUserInfo(self, kakaoid, dict, sessionmanager):
         # dict = { NICKNAME : '바꿀 닉네임' } 으로 전달하면 해당 요소를 바꿈
-        if self.getUserInfoFromServer(kakaoid)['code'] == 0:
+        res = self.getUserInfoFromServer(kakaoid)['code']
+        if res == 0:
             print('editUserInfo : 해당 유저 찾을 수 없음', kakaoid)
             return {'code': 0}
         idquery = {KAKAOID: kakaoid}
         values = {"$set": dict}
-        serverdb.user.update_one(idquery, values)
-        editSession(kakaoid, dict)
+        self.serverdb.user.update_one(idquery, values)
+        sessionmanager.editSession(kakaoid, dict)
         return {'code': 1}
 
     def delUserInfo(self,kakaoid):
@@ -71,7 +75,7 @@ class ServerDBManager:
             print('delUserInfo : 해당 유저 찾을 수 없음', kakaoid)
             return {'code': 0}
         idquery = {KAKAOID: kakaoid}
-        serverdb.user.delete_one(idquery)
+        self.serverdb.user.delete_one(idquery)
         return {'code': 1}
 
     def getStockRatio(self, kakaoid):  # kakaoid유저가 설정해놓은 주가 비율을 가져옴
@@ -89,6 +93,7 @@ class SessionDBManager:
         self.client = pymongo_inmemory.MongoClient()
         self.sessiondb = self.client.sessionDB
         print("sessiondb 초기화 완료", self.sessiondb)
+
     def createDummyData(self):  # Unit test용 페이크 데이터 하나 만들어서 세션db에 넣음
         self.sessiondb.user.insert_one({KAKAOID: '12181577', SESSIONID: "1971301676", NICKNAME: '김민석',
                                    APIKEY: Declaration.appKey, SECRET: Declaration.secret,
@@ -97,13 +102,15 @@ class SessionDBManager:
                                    CANO: '50067576', ACNT: '01',
                                    QUANTITY: 1000000})
     def createSession(self, kakaoid, token, serverdb):  # 서버에 있는 정보를 갖고 와서 세션을 만듬
-        cursor = serverdb.user.find({KAKAOID: kakaoid})
-        res = list(cursor)
-        if len(res) == 0:  # 정보가 없으면 0을 리턴
+        cursor = serverdb.getUserInfoFromServer(kakaoid)
+        print(kakaoid,'에 대한 세션 생성')
+        res = cursor
+        if res['code'] == 0:  # 정보가 없으면 0을 리턴
+            print("createSession: ",kakaoid,"에 대한 정보가 서버에 없음. 회원가입 먼저")
             return {'code': 0}
-        res = res[0]
         res[TOKEN] = token
         self.sessiondb.user.insert_one(res)
+        print("세션생성 완료",res)
         return {'code': 1}
 
     def isSessionAvailable(self,kakaoid):  # api를 호출 하기 전 해당 세션이 있는지
@@ -123,7 +130,7 @@ class SessionDBManager:
         res = res[0]
         res['code'] = 1
         return res
-
+    # 데이터 일관성 유지를 위해 세션 수정은 없애고 서버에서만 사용하는걸로 하겠습니다. 이 함수는 쓰지마세요
     def editSession(self, kakaoid, dict):
         # dict = { NICKNAME : '바꿀 닉네임' } 으로 전달하면 해당 요소를 바꿈
         ############################절대로 단독으로 실행하지 마세요###############################
@@ -137,169 +144,22 @@ class SessionDBManager:
         self.sessiondb.user.update_one(idquery, values)
         return {'code': 1}
 
-#
-# def sessionDBinitiate(): #로컬 저장소에 있는 inmemory DB
-#     global sessiondb
-#     #세션을 저장하는 용도로만 사용
-#     # kakaoid : "카카오 아이디 String"
-#     # sessionid : "세션을 식별하는 데 사용하는 id"
-#     # nickname : "사용자 닉네임 String"
-#     # apikey : "한국투자 apikey String"
-#     # secret : "한국투자 api secret String"
-#     # quantity : "현재 투자 설정 한 금액 Int"
-#     # token : "한국투자에서 받은 토큰 String"
-#     # logintoken : "카카오에서 받은 세션용 토큰 String"
-#     # cano : "계좌번호 체계(8-2)의 앞 8자리, 종합계좌번호"
-#     # acnt : "계좌번호 체계(8-2)의 뒤 2자리, 계좌상품코드"
-#     # **저장되어있는 카카오아이디 -> 현재 세션 유지중, 저장안되어있음 -> 세션 없는것
-#     client = pymongo_inmemory.MongoClient()
-#     sessiondb = client.sessionDB
-#     print("sessiondb 초기화 완료",sessiondb)
-#
-# def createDummyData(): #Unit test용 페이크 데이터 하나 만들어서 세션db에 넣음
-#     global sessiondb
-#     sessiondb.user.insert_one({KAKAOID:'12181577',SESSIONID:"1971301676",NICKNAME:'김민석',
-#                                APIKEY:Declaration.appKey,SECRET:Declaration.secret,
-#                                CANO: '50067576', ACNT: '01',
-#                                TOKEN: Declaration.token, LOGINTOKEN: 'TMP',
-#                                CANO : '50067576', ACNT : '01',
-#                                QUANTITY: 1000000})
-#
-# def createSession(kakaoid,token): #서버에 있는 정보를 갖고 와서 세션을 만듬
-#     global sessiondb,serverdb
-#     cursor = serverdb.user.find({KAKAOID: kakaoid})
-#     res = list(cursor)
-#     if len(res) == 0:  # 정보가 없으면 0을 리턴
-#         return {'code': 0}
-#     res = res[0]
-#     res[TOKEN] = token
-#     sessiondb.user.insert_one(res)
-#     return {'code' : 1}
-# def isSessionAvailable(kakaoid): #api를 호출 하기 전 해당 세션이 있는지
-#     global sessiondb
-#     cursor = sessiondb.user.find({KAKAOID: kakaoid})
-#     res = list(cursor)
-#     #카카오아이디를 파라미터로 받아서 현재 세션db에 존재하면 1, 존재하지않으면 0 리턴
-#     if len(res) == 0: return {'code' : 0}
-#     else: return  {'code' : 1}
-#
-# def getSessionInfo(kakaoid):#현재 세션에 대한 정보 리턴
-#     global sessiondb
-#     cursor = sessiondb.user.find({KAKAOID: kakaoid})
-#     res = list(cursor)
-#     if len(res) == 0:
-#         return {'code' : 0}
-#     res = res[0]
-#     res['code'] = 1
-#     return res
-# def editSession(kakaoid,dict):
-#     # dict = { NICKNAME : '바꿀 닉네임' } 으로 전달하면 해당 요소를 바꿈
-#     ############################절대로 단독으로 실행하지 마세요###############################
-#     ############################서버DB에서 업데이트 후 자동으로 실행됨#########################
-#     ####################유저 정보를 수정하고싶으면 editUserInfo를 실행해 주세요#################
-#     global sessiondb
-#     if getSessionInfo(kakaoid)['code'] == 0:
-#         print('editUserInfo : 해당 유저 찾을 수 없음', kakaoid)
-#         return {'code': 0}
-#     idquery = {KAKAOID: kakaoid}
-#     values = {"$set": dict}
-#     sessiondb.user.update_one(idquery, values)
-#     return {'code': 1}
-
-
-
-# def serverDBinitiate():
-#     global serverdb
-#     # db서버에서 클라이언트 불러옴 db변수를 통해 클라이언트에 접근 ㄱㄱ
-#     # DB에 들어가는 element set (JSON형식으로 관리 되기 때문에 변수 혼동 유의 ex) nickname 인데 nicname 이런식으로 오타나면 골치아픔)
-#     # kakaoid : "카카오 아이디 String"
-#     # nickname : "사용자 닉네임 String"
-#     # apikey : "한국투자 apikey String"
-#     # secret : "한국투자 api secret String"
-#     # quantity : "현재 투자 설정 한 금액 Int"
-#     # model : "투자한 모델 파일 경로/이름 "
-#     # cano : "계좌번호 체계(8-2)의 앞 8자리, 종합계좌번호"
-#     # acnt : "계좌번호 체계(8-2)의 뒤 2자리, 계좌상품코드"
-#     # stocklist : 주가 설정된 비율 { "005930" : "0.5", "003550" : "0.3", "091170" : "0.2"} 이렇게 json으로 저장
-#     client = pymongo.MongoClient( #실제 배포에서는 아래거 써야됨.
-#         f"mongodb+srv://admin1:admin@cluster0.qbpab.mongodb.net/?retryWrites=true&w=majority")
-#     # client = pymongo.MongoClient(
-#     #     f"mongodb+srv://admin1:{Declaration.serverDBPW}@cluster0.qbpab.mongodb.net/?retryWrites=true&w=majority")
-#     serverdb = client.TradingDB
-#     print("serverdb 초기화 완료",serverdb)
-#
-#     #서버의 계정 생성
-# def createAccount(kakaoid,nickname,apikey,secret,cano,acnt,quantity=0):
-#     global serverdb
-#     serverdb.user.insert_one({KAKAOID: kakaoid, NICKNAME: nickname, APIKEY: apikey, SECRET: secret, QUANTITY: quantity
-#                               ,CANO : cano, ACNT : acnt})
-#     return {'code': 1}
-#
-# def createServerDummy():
-#     global serverdb
-#     serverdb.user.insert_one({KAKAOID: '12181577', NICKNAME: '김민석', APIKEY: Declaration.appKey,
-#                               SECRET: Declaration.secret, CANO : '50067576', ACNT : '01', QUANTITY: 1000000,
-#                               STKLST : '{"005930":"0.5","003550":"0.3","091170":"0.2"}'})
-#
-#
-# def getUserInfoFromServer(kakaoid):
-#     # {'_id': ObjectId('62c3ed0a991191142d3d56fc'), 'kakaoid': '12181577',
-#     # 'nickname': '김민석', 'apikey': 'asdf', 'secret': 'sec', 'quantity': 1000000, 'code': 1} ->kakaoid가 있을 경우
-#     # {'code': 0} -> kakaoid가 없을 경우
-#     global serverdb
-#     cursor = serverdb.user.find({KAKAOID:kakaoid})
-#     res = list(cursor)
-#     if len(res) == 0: #정보가 없으면 0을 리턴
-#         return {'code':0}
-#     res = res[0]
-#     res['code'] = 1
-#     return res
-#
-# def editUserInfo(kakaoid, dict):
-#     # dict = { NICKNAME : '바꿀 닉네임' } 으로 전달하면 해당 요소를 바꿈
-#     global serverdb
-#     if getUserInfoFromServer(kakaoid)['code'] == 0:
-#         print('editUserInfo : 해당 유저 찾을 수 없음',kakaoid)
-#         return {'code' : 0}
-#     idquery = { KAKAOID : kakaoid }
-#     values = { "$set" : dict }
-#     serverdb.user.update_one(idquery,values)
-#     editSession(kakaoid,dict)
-#     return {'code' : 1}
-#
-# def delUserInfo(kakaoid):
-#     #회원탈퇴시 회원정보 삭제
-#     global serverdb
-#     if getUserInfoFromServer(kakaoid)['code'] == 0:
-#         print('delUserInfo : 해당 유저 찾을 수 없음',kakaoid)
-#         return {'code' : 0}
-#     idquery = { KAKAOID : kakaoid }
-#     serverdb.user.delete_one(idquery)
-#     return {'code' : 1}
-#
-# def getStockRatio(kakaoid):#kakaoid유저가 설정해놓은 주가 비율을 가져옴
-#     global serverdb
-#     cursor = serverdb.user.find({KAKAOID: kakaoid})
-#     res = list(cursor)
-#     if len(res) == 0:  # 정보가 없으면 0을 리턴
-#         return {'code': 0}
-#     res = {k:float(v) for k,v in dict(literal_eval(res[0][STKLST])).items()}
-#     res['code'] = 1
-#     print('kakaoid에 대한 주가 비율 정보를 요청함',res)
-#     return res
-
 if __name__ == "__main__":#Unit test를 위한 공간
     Declaration.initiate()
-    #sessionDBinitiate()
-    #serverDBinitiate()
-    #createServerDummy()
-    #createSession('12181577','tokensample')
-    #editUserInfo('12181577',{NICKNAME:'김민석kms'})
-    #print(getUserInfoFromServer('12181577'))
-    #print(getUserInfoFromServer('12181527'))
-    #print(getSessionInfo('12181577'))
-    #print(getStockRatio('12181577'))
-    #delUserInfo('12181577')
+
     serverdb = ServerDBManager()
     sessiondb = SessionDBManager()
+    # serverdb.createServerDummy()
+    # print(sessiondb.createSession('12181577','tokensample',serverdb))
+    # print(sessiondb.createSession('1218157777','adsfasdfdas',serverdb))
+    # print(sessiondb.editSession('12181577',{NICKNAME:'김민석석'}))
+    # print(sessiondb.getSessionInfo('12181577'))
+
+    # print(serverdb.createAccount('12171577','민석김','asdfasdf','asdfadsfcccc','00000000','01'))
+    # print(serverdb.getUserInfoFromServer('12171577'))
+    # print(serverdb.editUserInfo('12171577',{NICKNAME:'민석김김'},sessiondb))
+    # print(serverdb.getUserInfoFromServer('12171577'))
+    # print(serverdb.delUserInfo('12171577'))
+
+
 
