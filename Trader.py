@@ -78,11 +78,23 @@ def sellMarketPrice(kakaoid,code,quantity): #현금 주식 매도 주문
     res['code'] = 1
     print(res)
     return res
+def rebalance(kakaoid):
+    cursession = DBManager.getSessionInfo(kakaoid)
+    if cursession['code'] == 0:  # 현재 세션이 존재하지 않으면 0 리턴
+        return {'code': 0}
+    #현재 세션이 존재할 경우 현재 설정되어있는 비율을 불러옴
+    #현재 잔고 상황을 불러옴
+    #현재 잔고 총 금액 X 각 비율 만큼 곱한다
+    #현재 잔고의 주가 X 주식 수 행렬을 구한다
+    #초과분 만큼 판다
+    #부족분 만큼 산다
 
+    return {'code': 1}
 
 
 if __name__ == "__main__":
     Declaration.initiate()
     DBManager.sessionDBinitiate()
-    DBManager.createDummyData()
+    #DBManager.createDummyData()
+    DBManager.createSession('12181577','sample token')
     print(sellMarketPrice('12181577','005930',1))
