@@ -1,6 +1,8 @@
 import pymongo as pymongo
 import pymongo_inmemory
 import Declaration
+import uuid
+import bson
 import pydantic
 from dependency_injector import containers, providers
 from ast import literal_eval
@@ -14,6 +16,7 @@ serverdb = None
 #code가 0이면 뭔가가 안됐다는 것(db에 유저 정보가 없음)
 KAKAOID = 'kakaoid'
 SESSIONID = 'sessionid'
+UUID = 'uuid'
 LOGINTOKEN = 'logintoken'
 NICKNAME = 'nickname'
 APIKEY = 'apikey'
@@ -61,16 +64,17 @@ class ServerDBManager:
         res['code'] = 1
         return res
 
-    def editUserInfo(self, kakaoid: str, dic: dict, sessionmanager: str):
+    # 데이터 일관성 유지를 위해 세션단위에서만 정보 수정합니다. 이 함수는 단독으로 호출하지 마세요
+    def editUserInfo(self, kakaoid: str, dic: dict):
         # dict = { NICKNAME : '바꿀 닉네임' } 으로 전달하면 해당 요소를 바꿈
-        res = self.getUserInfoFromServer(kakaoid)['code']
+        tmp = self.getUserInfoFromServer(kakaoid)
+        res = tmp['code']
         if res == 0:
             print('editUserInfo : 해당 유저 찾을 수 없음', kakaoid)
             return {'code': 0}
         idquery = {KAKAOID: kakaoid}
         values = {"$set": dic}
         self.serverdb.user.update_one(idquery, values)
-        sessionmanager.editSession(kakaoid, dic)
         return {'code': 1}
 
     def delUserInfo(self,kakaoid: str):
@@ -99,7 +103,7 @@ class SessionDBManager:
         print("sessiondb 초기화 완료", self.sessiondb)
 
     def createDummyData(self):  # Unit test용 페이크 데이터 하나 만들어서 세션db에 넣음
-        self.sessiondb.user.insert_one({KAKAOID: '12181577', SESSIONID: "1971301676", NICKNAME: '김민석',
+        self.sessiondb.user.insert_one({KAKAOID: '12181577', SESSIONID: "1971301676", NICKNAME: '김민석', UUID:uuid.uuid4(),
                                    APIKEY: Declaration.appKey, SECRET: Declaration.secret,
                                    CANO: '50067576', ACNT: '01',
                                    TOKEN: Declaration.token, LOGINTOKEN: 'TMP',
@@ -113,12 +117,13 @@ class SessionDBManager:
             print("createSession: ",kakaoid,"에 대한 정보가 서버에 없음. 회원가입 먼저")
             return {'code': 0}
         res[TOKEN] = token
+        res[UUID] = uuid.uuid4().hex
         self.sessiondb.user.insert_one(res)
         print("세션생성 완료",res)
-        return {'code': 1}
+        return {'code': 1, UUID : res[UUID]}
 
-    def isSessionAvailable(self,kakaoid: str):  # api를 호출 하기 전 해당 세션이 있는지
-        cursor = self.sessiondb.user.find({KAKAOID: kakaoid})
+    def isSessionAvailable(self,userUUID: uuid.UUID):  # api를 호출 하기 전 해당 세션이 있는지
+        cursor = self.sessiondb.user.find({UUID: userUUID})
         res = list(cursor)
         # 카카오아이디를 파라미터로 받아서 현재 세션db에 존재하면 1, 존재하지않으면 0 리턴
         if len(res) == 0:
@@ -126,26 +131,29 @@ class SessionDBManager:
         else:
             return {'code': 1}
 
-    def getSessionInfo(self, kakaoid: str):  # 현재 세션에 대한 정보 리턴
-        cursor = self.sessiondb.user.find({KAKAOID: kakaoid})
+    def getSessionInfo(self, userUUID: uuid.UUID):  # 현재 세션에 대한 정보 리턴
+        cursor = self.sessiondb.user.find({UUID: userUUID})
         res = list(cursor)
         if len(res) == 0:
             return {'code': 0}
         res = res[0]
         res['code'] = 1
         return res
-    # 데이터 일관성 유지를 위해 세션 수정은 없애고 서버에서만 사용하는걸로 하겠습니다. 이 함수는 쓰지마세요
-    def editSession(self, kakaoid: str, dic: dict):
+    def editSession(self, userUUID: uuid.UUID, dic: dict, servermanager: ServerDBManager):
         # dict = { NICKNAME : '바꿀 닉네임' } 으로 전달하면 해당 요소를 바꿈
         ############################절대로 단독으로 실행하지 마세요###############################
         ############################서버DB에서 업데이트 후 자동으로 실행됨#########################
         ####################유저 정보를 수정하고싶으면 editUserInfo를 실행해 주세요#################
-        if self.getSessionInfo(kakaoid)['code'] == 0:
-            print('editUserInfo : 해당 유저 찾을 수 없음', kakaoid)
+        tmp = self.getSessionInfo(userUUID)
+        kakaoid = tmp[KAKAOID]
+        if tmp['code'] == 0:
+            print('editUserInfo : 해당 유저 찾을 수 없음', userUUID)
             return {'code': 0}
-        idquery = {KAKAOID: kakaoid}
+        idquery = {UUID: userUUID}
         values = {"$set": dic}
         self.sessiondb.user.update_one(idquery, values)
+        servermanager.editUserInfo(kakaoid,dic)
+        print("editSession: 수정 완료")
         return {'code': 1}
 
 class DBContainer(containers.DeclarativeContainer):
@@ -154,19 +162,23 @@ class DBContainer(containers.DeclarativeContainer):
 
 if __name__ == "__main__":#Unit test를 위한 공간
     Declaration.initiate()
-
+    #이런식으로 인스턴스 생성하시면 싱글톤 패턴으로 구현됩니다
     serverdb = DBContainer().serverdb_provider()
     sessiondb = DBContainer().sessiondb_provider()
-    serverdb.createServerDummy()
-    print(sessiondb.createSession('12181577','tokensample',serverdb))
-    print(sessiondb.createSession('1218157777','adsfasdfdas',serverdb))
-    print(sessiondb.editSession('12181577',{NICKNAME:'김민석석'}))
-    print(sessiondb.getSessionInfo('12181577'))
+
+    #serverdb.createServerDummy()
+    # tmpuuid = sessiondb.createSession('12181577','tokensample',serverdb)[UUID]
+    # print(tmpuuid,uuid.UUID(tmpuuid))
+    # print(sessiondb.createSession('121815777','adsfasdfdas',serverdb))
+    # print(sessiondb.editSession(tmpuuid,{NICKNAME:'김민석석'}))
+    # print(sessiondb.getSessionInfo(tmpuuid))
 
     print(serverdb.createAccount('12171577','민석김','asdfasdf','asdfadsfcccc','00000000','01'))
     print(serverdb.getUserInfoFromServer('12171577'))
-    print(serverdb.editUserInfo('12171577',{NICKNAME:'민석김김'},sessiondb))
+    tmpuuid = sessiondb.createSession('12171577','tokentoken',serverdb)[UUID]
+    print(sessiondb.editSession(tmpuuid,{NICKNAME:'민석김김'},serverdb))
     print(serverdb.getUserInfoFromServer('12171577'))
+    print(sessiondb.getSessionInfo(tmpuuid))
     print(serverdb.delUserInfo('12171577'))
 
 
