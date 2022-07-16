@@ -2,12 +2,12 @@ import pymongo as pymongo
 import pymongo_inmemory
 import Declaration
 import uuid
+import requests, json
 import bson
 import pydantic
 from dependency_injector import containers, providers
 from ast import literal_eval
-sessiondb = None
-serverdb = None
+
 #sessiondb : 세션을 유지하기 위해 사용하는 inmemory DB
 #serverdb : 서버에 저장되어 있는 데이터들을 불러오는 db, mongodb atlas를 사용함
 #inmemorydb는 껐다 키면 사라지니 세션 유지용으로만 사용!!
@@ -36,7 +36,7 @@ class ServerDBManager:
         # client = pymongo.MongoClient(
         #     f"mongodb+srv://admin1:{Declaration.serverDBPW}@cluster0.qbpab.mongodb.net/?retryWrites=true&w=majority")
         self.serverdb = self.client.TradingDB
-        print("serverdb 초기화 완료", serverdb)
+        print("serverdb 초기화 완료", self.serverdb)
 
     def createAccount(self, kakaoid: str, nickname: str, apikey: str, secret: str, cano: str, acnt: str, quantity=0):
         if self.getUserInfoFromServer(kakaoid)['code'] == 1:#서버에 해당 유저가 있으면 계정 생성 못함
@@ -109,15 +109,27 @@ class SessionDBManager:
                                    TOKEN: Declaration.token, LOGINTOKEN: 'TMP',
                                    CANO: '50067576', ACNT: '01',
                                    QUANTITY: 1000000})
-    def createSession(self, kakaoid: str, token: str, serverdb: ServerDBManager):  # 서버에 있는 정보를 갖고 와서 세션을 만듬
+    def createSession(self, kakaoid: str, kakaotoken: str, serverdb: ServerDBManager):  # 서버에 있는 정보를 갖고 와서 세션을 만듬
         cursor = serverdb.getUserInfoFromServer(kakaoid)
         print(kakaoid,'에 대한 세션 생성')
         res = cursor
         if res['code'] == 0:  # 정보가 없으면 0을 리턴
             print("createSession: ",kakaoid,"에 대한 정보가 서버에 없음. 회원가입 먼저")
             return {'code': 0}
-        res[TOKEN] = token
         res[UUID] = uuid.uuid4().hex
+
+        headers = {"content-type": "application/json"}
+        body = {"grant_type": "client_credentials",
+                "appkey": res[APIKEY],
+                "appsecret": res[SECRET]}
+        path = "oauth2/tokenP"
+        url = f"{Declaration.Base_URL}/{path}"
+        print(f"{url}로 보안인증 키 요청")
+        tokenres = requests.post(url, headers=headers, data=json.dumps(body)).json()
+        res[TOKEN] = tokenres['access_token']
+        print(f"token 생성 완료, 현재 계정 정보 {res[APIKEY]} {res[SECRET]} {kakaotoken} {res[TOKEN]}")
+
+        res[LOGINTOKEN] = kakaotoken
         self.sessiondb.user.insert_one(res)
         print("세션생성 완료",res)
         return {'code': 1, UUID : res[UUID]}
@@ -157,8 +169,8 @@ class SessionDBManager:
         return {'code': 1}
 
 class DBContainer(containers.DeclarativeContainer):
-    serverdb_provider = providers.ThreadLocalSingleton(ServerDBManager)
-    sessiondb_provider = providers.ThreadLocalSingleton(SessionDBManager)
+    serverdb_provider = providers.Singleton(ServerDBManager)
+    sessiondb_provider = providers.Singleton(SessionDBManager)
 
 if __name__ == "__main__":#Unit test를 위한 공간
     Declaration.initiate()
@@ -166,12 +178,12 @@ if __name__ == "__main__":#Unit test를 위한 공간
     serverdb = DBContainer().serverdb_provider()
     sessiondb = DBContainer().sessiondb_provider()
 
-    #serverdb.createServerDummy()
-    # tmpuuid = sessiondb.createSession('12181577','tokensample',serverdb)[UUID]
-    # print(tmpuuid,uuid.UUID(tmpuuid))
-    # print(sessiondb.createSession('121815777','adsfasdfdas',serverdb))
-    # print(sessiondb.editSession(tmpuuid,{NICKNAME:'김민석석'}))
-    # print(sessiondb.getSessionInfo(tmpuuid))
+    serverdb.createServerDummy()
+    tmpuuid = sessiondb.createSession('12181577','tokensample',serverdb)[UUID]
+    print(tmpuuid,uuid.UUID(tmpuuid))
+    print(sessiondb.createSession('121815777','adsfasdfdas',serverdb))
+    print(sessiondb.editSession(tmpuuid,{NICKNAME:'김민석석'}))
+    print(sessiondb.getSessionInfo(tmpuuid))
 
     print(serverdb.createAccount('12171577','민석김','asdfasdf','asdfadsfcccc','00000000','01'))
     print(serverdb.getUserInfoFromServer('12171577'))
