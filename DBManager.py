@@ -2,6 +2,7 @@ import pymongo as pymongo
 import pymongo_inmemory
 import Declaration
 import pydantic
+from dependency_injector import containers, providers
 from ast import literal_eval
 sessiondb = None
 serverdb = None
@@ -23,6 +24,8 @@ TOKEN = 'token'
 CANO = 'cano'
 ACNT = 'acnt_prdt_cd'
 STKLST = 'stocklist'
+
+
 class ServerDBManager:
     def __init__(self):
         self.client = pymongo.MongoClient(  # 실제 배포에서는 아래거 써야됨.
@@ -145,22 +148,26 @@ class SessionDBManager:
         self.sessiondb.user.update_one(idquery, values)
         return {'code': 1}
 
+class DBContainer(containers.DeclarativeContainer):
+    serverdb_provider = providers.ThreadLocalSingleton(ServerDBManager)
+    sessiondb_provider = providers.ThreadLocalSingleton(SessionDBManager)
+
 if __name__ == "__main__":#Unit test를 위한 공간
     Declaration.initiate()
 
-    serverdb = ServerDBManager()
-    sessiondb = SessionDBManager()
-    # serverdb.createServerDummy()
-    # print(sessiondb.createSession('12181577','tokensample',serverdb))
-    # print(sessiondb.createSession('1218157777','adsfasdfdas',serverdb))
-    # print(sessiondb.editSession('12181577',{NICKNAME:'김민석석'}))
-    # print(sessiondb.getSessionInfo('12181577'))
+    serverdb = DBContainer().serverdb_provider()
+    sessiondb = DBContainer().sessiondb_provider()
+    serverdb.createServerDummy()
+    print(sessiondb.createSession('12181577','tokensample',serverdb))
+    print(sessiondb.createSession('1218157777','adsfasdfdas',serverdb))
+    print(sessiondb.editSession('12181577',{NICKNAME:'김민석석'}))
+    print(sessiondb.getSessionInfo('12181577'))
 
-    # print(serverdb.createAccount('12171577','민석김','asdfasdf','asdfadsfcccc','00000000','01'))
-    # print(serverdb.getUserInfoFromServer('12171577'))
-    # print(serverdb.editUserInfo('12171577',{NICKNAME:'민석김김'},sessiondb))
-    # print(serverdb.getUserInfoFromServer('12171577'))
-    # print(serverdb.delUserInfo('12171577'))
+    print(serverdb.createAccount('12171577','민석김','asdfasdf','asdfadsfcccc','00000000','01'))
+    print(serverdb.getUserInfoFromServer('12171577'))
+    print(serverdb.editUserInfo('12171577',{NICKNAME:'민석김김'},sessiondb))
+    print(serverdb.getUserInfoFromServer('12171577'))
+    print(serverdb.delUserInfo('12171577'))
 
 
 
