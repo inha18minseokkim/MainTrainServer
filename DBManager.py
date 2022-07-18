@@ -151,6 +151,13 @@ class SessionDBManager:
         res = res[0]
         res['code'] = 1
         return res
+    def getSessionKakaoId(self, userUUID: uuid.UUID):  # 현재 세션에 대한 정보 리턴
+        cursor = self.sessiondb.user.find({UUID: userUUID})
+        res = list(cursor)
+        if len(res) == 0:
+            return {'code': 0}
+        res = res[0]
+        return {'code': 1, 'res' : res[KAKAOID]}
     def editSession(self, userUUID: uuid.UUID, dic: dict, servermanager: ServerDBManager):
         # dict = { NICKNAME : '바꿀 닉네임' } 으로 전달하면 해당 요소를 바꿈
         ############################절대로 단독으로 실행하지 마세요###############################
@@ -169,6 +176,13 @@ class SessionDBManager:
         return {'code': 1}
 
 class DBContainer(containers.DeclarativeContainer):
+    def __init__(self):
+        print("DBContainer initiated")
+    def __new__(cls):
+        if not hasattr(cls, "_instance"):
+            print("__new__ is called")
+            cls._instance = super().__new__(cls)
+        return cls._instance
     serverdb_provider = providers.Singleton(ServerDBManager)
     sessiondb_provider = providers.Singleton(SessionDBManager)
 
@@ -178,20 +192,14 @@ if __name__ == "__main__":#Unit test를 위한 공간
     serverdb = DBContainer().serverdb_provider()
     sessiondb = DBContainer().sessiondb_provider()
 
-    serverdb.createServerDummy()
     tmpuuid = sessiondb.createSession('12181577','tokensample',serverdb)[UUID]
     print(tmpuuid,uuid.UUID(tmpuuid))
     print(sessiondb.createSession('121815777','adsfasdfdas',serverdb))
-    print(sessiondb.editSession(tmpuuid,{NICKNAME:'김민석석'}))
+    print(sessiondb.editSession(tmpuuid,{NICKNAME:'김민석석'},serverdb))
+    print(sessiondb.getSessionInfo(tmpuuid))
+    print(sessiondb.editSession(tmpuuid,{NICKNAME:'민석김김'},serverdb))
     print(sessiondb.getSessionInfo(tmpuuid))
 
-    print(serverdb.createAccount('12171577','민석김','asdfasdf','asdfadsfcccc','00000000','01'))
-    print(serverdb.getUserInfoFromServer('12171577'))
-    tmpuuid = sessiondb.createSession('12171577','tokentoken',serverdb)[UUID]
-    print(sessiondb.editSession(tmpuuid,{NICKNAME:'민석김김'},serverdb))
-    print(serverdb.getUserInfoFromServer('12171577'))
-    print(sessiondb.getSessionInfo(tmpuuid))
-    print(serverdb.delUserInfo('12171577'))
 
 
 
