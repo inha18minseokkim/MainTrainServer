@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from loguru import logger
 from Container import MainContainer
 import requests
+import Declaration
 router = APIRouter()
 
 # 일단 임시로 카카오 api 키 받음
@@ -91,9 +92,7 @@ async def kakaoAuth(response: Response, code: Optional[str]="NONE"):
     print(user['code'])
     if user['code'] == 0: # 만약 회원가입이 안 된 유저라면
         # db 에 user 추가
-        serverdb.createAccount(id, name, apikey='PSSAea3iLDbZlD2IY8mxtlMKQaO5VsbhQJ2H', 
-        secret="FhJBvBzeZ+/vKVLv7Lv9Oj1d4B9H9HClLbuXQ2mS+61ectcTqBmnVoxodth5jM3c/Bg78dB/sMkV/TOUgctjZYzXmTFY/TtC0G3M/lsdt++DLvhQkCdswdYtt2BBCIRmTtExcqlHRgBiRPMbSveYL905XP8ZrDe/V958uSCs67Rh/7z09Tw=", 
-        cano='dummy', acnt='dummy', quantity=0)
+        serverdb.createAccount(id, name, apikey=Declaration.appKey, secret=Declaration.secret, cano='50067576', acnt='01', quantity=1000000)
 
     # 세션에 user 추가 로직 구현
     sessiondb.createSession(id, 'dummy', serverdb)
