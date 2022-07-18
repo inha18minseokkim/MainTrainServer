@@ -2,6 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 from loguru import logger
+from Container import MainContainer
 import requests
 router = APIRouter()
 
@@ -49,9 +50,7 @@ class Oauth:
 # 아직 클라이언트가 없으므로 서버에서 로그인 페이지 생성
 @router.get('/login')
 def kakao():
-    REST_API_KEY = "fd9b44e80bfa7423f098d6ba45a87ee4"
-    REDIRECT_URI = "http://127.0.0.1:8000/auth"
-    url = f"https://kauth.kakao.com/oauth/authorize?client_id={REST_API_KEY}&response_type=code&redirect_uri={REDIRECT_URI}"
+    url = f"https://kauth.kakao.com/oauth/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}"
     response = RedirectResponse(url)
     return response
 
@@ -84,43 +83,27 @@ async def kakaoAuth(response: Response, code: Optional[str]="NONE"):
     else:
         email = f"{name}@kakao.com"
 
-    '''
-    id, name, (email) 사용하여 회원가입 and 인메모리 구현
+    serverdb = MainContainer().serverdb_provider()
+    sessiondb = MainContainer().sessiondb_provider()
 
-    user = # db에서 id로 유저 검색해서 대입
+    user = serverdb.getUserInfoFromServer(id) # db에서 id로 유저 검색해서 대입
 
-    if user is None: # 만약 회원가입이 안 된 유저라면
+    print(user['code'])
+    if user['code'] == 0: # 만약 회원가입이 안 된 유저라면
+        # db 에 user 추가
+        serverdb.createAccount(id, name, apikey='PSSAea3iLDbZlD2IY8mxtlMKQaO5VsbhQJ2H', 
+        secret="FhJBvBzeZ+/vKVLv7Lv9Oj1d4B9H9HClLbuXQ2mS+61ectcTqBmnVoxodth5jM3c/Bg78dB/sMkV/TOUgctjZYzXmTFY/TtC0G3M/lsdt++DLvhQkCdswdYtt2BBCIRmTtExcqlHRgBiRPMbSveYL905XP8ZrDe/V958uSCs67Rh/7z09Tw=", 
+        cano='dummy', acnt='dummy', quantity=0)
 
-        db에 user 추가 로직 구현
-        
-        1. db 에 user 추가
+    # 세션에 user 추가 로직 구현
+    sessiondb.createSession(id, 'dummy', serverdb)
 
-        # message = '회원가입이 완료되었습니다.'
-        # value = {"status": 200, "result": "success", "msg": message}
-
-    세션에 user 추가 로직 구현
-    
-    1.
-    인메모리 db에 user 추가
-
-    2.
-    쿠키에 response.set_cookie(key="kakao", value=str(auth_info['access_token']))
-    또는 response.set_cookie(key="kakao", value=uuid4())
-    acess_token 을 세션키로 사용하게 되면 카카오 사용자 정보 요청 리퀘스트가 너무 많아짐
-    따라서 랜덤 uuid 생성해서 세션키로 사용하는 것도 나쁘지 않음
-    1. 세션 만료시간 정해야함
-    2. 중복 로그인 괜찮은지 생각해 봐야함
-
-    ##
-
-    # message = '로그인에 성공하였습니다.'
+    # message = '로그인에 성공하였습니다.\n'
     # value = {"status": 200, "result": "success", "msg": message}
-    '''
 
     return {"login" : "success"}
 
-
-# 나중에 Oauth 에 포함시켜야 할 함수
+'''
 @router.get('/logout')
 def kakaoLogout(request: Request, response: Response):
 
@@ -130,3 +113,4 @@ def kakaoLogout(request: Request, response: Response):
     _res = requests.post(url,headers=headers)
     response.set_cookie(key="kakao", value=None)
     return {"logout": _res.json()}
+'''
