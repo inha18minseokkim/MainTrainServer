@@ -175,30 +175,8 @@ class SessionDBManager:
         print("editSession: 수정 완료")
         return {'code': 1}
 
-class DBContainer(containers.DeclarativeContainer):
-    def __init__(self):
-        print("DBContainer initiated")
-    def __new__(cls):
-        if not hasattr(cls, "_instance"):
-            print("__new__ is called")
-            cls._instance = super().__new__(cls)
-        return cls._instance
-    serverdb_provider = providers.Singleton(ServerDBManager)
-    sessiondb_provider = providers.Singleton(SessionDBManager)
 
-if __name__ == "__main__":#Unit test를 위한 공간
-    Declaration.initiate()
-    #이런식으로 인스턴스 생성하시면 싱글톤 패턴으로 구현됩니다
-    serverdb = DBContainer().serverdb_provider()
-    sessiondb = DBContainer().sessiondb_provider()
 
-    tmpuuid = sessiondb.createSession('12181577','tokensample',serverdb)[UUID]
-    print(tmpuuid,uuid.UUID(tmpuuid))
-    print(sessiondb.createSession('121815777','adsfasdfdas',serverdb))
-    print(sessiondb.editSession(tmpuuid,{NICKNAME:'김민석석'},serverdb))
-    print(sessiondb.getSessionInfo(tmpuuid))
-    print(sessiondb.editSession(tmpuuid,{NICKNAME:'민석김김'},serverdb))
-    print(sessiondb.getSessionInfo(tmpuuid))
 
 
 

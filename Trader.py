@@ -6,9 +6,9 @@ import pydantic
 from dependency_injector.providers import Singleton
 
 class TradeManager:
-    def __init__(self,container):
-        self.sessionDB = container.sessiondb_provider()
-        self.serverDB = container.serverdb_provider()
+    def __init__(self,_sessiondb,_serverdb):
+        self.sessionDB = _sessiondb
+        self.serverDB = _serverdb
 
     def getHash(self, apikey: str, secret: str, data: dict):  # api post 요청 시 사용 할 hash 함수
         # 단독으로 사용하지 마세요. 세션이 없다는 조건을 guard 하지 않음
@@ -25,6 +25,7 @@ class TradeManager:
 
     def buyMarketPrice(self, useruuid: str, code: str, quantity: int):  # 현금 주식 매입 주문
         cursession = self.sessionDB.getSessionInfo(useruuid)
+        print(useruuid,cursession)
         if cursession['code'] == 0:  # 현재 세션이 존재하지 않으면 0 리턴
             return {'code': 0}
         # httprequest 부분 시작
@@ -112,7 +113,8 @@ if __name__ == "__main__":
     print(sessiondb.getSessionInfo(tmpuuid))
     trader = TradeManager(container)
     print(trader.sessionDB.getSessionInfo(tmpuuid))
-    print(trader.buyMarketPrice(tmpuuid,'005930',1))
-    print(trader.sellMarketPrice(tmpuuid, '005930', 1))
+    print(trader.buyMarketPrice(tmpuuid,'005930',10))
+    print(trader.buyMarketPrice(tmpuuid, '003550', 10))
+    print(trader.buyMarketPrice(tmpuuid, '091170', 10))
     print(sessiondb2.getSessionInfo(tmpuuid))
     #print(sellMarketPrice('12181577','005930',1))

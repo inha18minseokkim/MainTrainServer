@@ -2,12 +2,13 @@ import Declaration
 import DBManager
 import requests,json
 import Trader
+import Container
 import uuid
 class Account:
-    def __init__(self, sessionuuid: uuid.UUID):
-        sessiondb = DBManager.DBContainer().sessiondb_provider()
-        serverdb = DBManager.DBContainer().serverdb_provider()
-        self.userinfo = sessiondb.getSessionInfo(sessionuuid)
+    def __init__(self, sessionuuid: uuid.UUID, _sessiondb, _serverdb):
+        self.sessiondb = _sessiondb
+        self.serverdb = _serverdb
+        self.userinfo = self.sessiondb.getSessionInfo(sessionuuid)
         print(self.userinfo)
         self.kakaoid = self.userinfo[DBManager.KAKAOID]
         self.nickname = self.userinfo[DBManager.NICKNAME]
@@ -18,7 +19,7 @@ class Account:
         self.cano = self.userinfo[DBManager.CANO]
         self.acnt = self.userinfo[DBManager.ACNT]
         #ratio는 내가 설정해놓은 비율
-        self.ratio = serverdb.getStockRatio(self.kakaoid)
+        self.ratio = self.serverdb.getStockRatio(self.kakaoid)
         print(self.kakaoid)
         print(self.ratio)
         self.total = 0 #총평가금액
@@ -83,7 +84,8 @@ class Account:
         self.sumofern = res2['evlu_pfls_smtl_amt']  # 평가손익합계금액
         self.assticdc = res2['asst_icdc_amt']  # 자산증감액
         self.assticdcrt = res2['asst_icdc_erng_rt']  # 자산증감수익률
-
+    def rebalance(self):
+        pass
 
 
 
