@@ -11,7 +11,7 @@ router = APIRouter()
 # 127.0.0.1:8000/kakao 로 접속하면 로그인 나옴
 CLIENT_ID = 'fd9b44e80bfa7423f098d6ba45a87ee4'
 CLIENT_SECRET = 'WYOkF2Y5YAaw21FLlSfcOgHK6NT0PNfj'
-REDIRECT_URI = 'http://127.0.0.1:8000/auth'
+REDIRECT_URI = 'http://haniumproject.com/auth'
 
 class Oauth:
 
