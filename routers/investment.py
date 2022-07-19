@@ -42,7 +42,7 @@ request body
     "start": "2021"
 }
 '''
-@router.get("/getPrice")
+@router.post("/getPrice")
 async def getChart(item: Item):
     df = fdr.DataReader(item.code, item.start)
     return df.to_dict()

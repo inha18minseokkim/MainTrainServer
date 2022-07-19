@@ -13,7 +13,7 @@ router = APIRouter()
 # 127.0.0.1:8000/kakao 로 접속하면 로그인 나옴
 REST_API_KEY = '52750403fc68645f09dd49b6b777a752'
 CLIENT_SECRET = 'L6MF44rcF2gbkthrCCoKpP7Q5Q9b6Jz4'
-REDIRECT_URI = 'http://localhost:3000/signup'
+REDIRECT_URI = 'http://localhost:3000/signin'
 
 class Oauth:
 
@@ -114,3 +114,35 @@ def kakaoLogout(request: Request, response: Response):
     response.set_cookie(key="kakao", value=None)
     return {"logout": _res.json()}
 '''
+
+class Item(BaseModel):
+    apikey: str
+    secret: str
+    cano: int
+    acnt: int
+    quantity: int
+    uuid: str
+
+'''
+005930 : 삼성전자
+request body
+{
+    "interval": "YEAR",
+    "code": "005930",
+    "start": "2021"
+}
+'''
+@router.post("/registration")
+async def getChart(request: Request, item: Item):
+    # logger.debug(item)
+    logger.debug(request)
+    body = await request.json()
+    logger.debug(body)
+    logger.debug(item)
+    '''
+    for i in request:
+        logger.debug(i)
+        logger.debug(request[i])'''
+    
+    # return item
+    return item
