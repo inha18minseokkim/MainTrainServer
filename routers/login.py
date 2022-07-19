@@ -3,15 +3,16 @@ from fastapi import APIRouter, Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 from loguru import logger
 from Container import MainContainer
+from pydantic import BaseModel
 import requests
 import Declaration
 router = APIRouter()
 
 # 일단 임시로 카카오 api 키 받음
 # 127.0.0.1:8000/kakao 로 접속하면 로그인 나옴
-CLIENT_ID = 'fd9b44e80bfa7423f098d6ba45a87ee4'
-CLIENT_SECRET = 'WYOkF2Y5YAaw21FLlSfcOgHK6NT0PNfj'
-REDIRECT_URI = 'http://haniumproject.com/auth'
+REST_API_KEY = '52750403fc68645f09dd49b6b777a752'
+CLIENT_SECRET = 'L6MF44rcF2gbkthrCCoKpP7Q5Q9b6Jz4'
+REDIRECT_URI = 'http://localhost:3000/signup'
 
 class Oauth:
 
@@ -29,8 +30,8 @@ class Oauth:
             headers=self.default_header,
             data={
                 "grant_type": "authorization_code",
-                "client_id": CLIENT_ID,
-                "client_secret": CLIENT_SECRET,
+                "client_id": REST_API_KEY,
+                # "client_secret": CLIENT_SECRET,
                 "redirect_uri": REDIRECT_URI,
                 "code": code,
             },
@@ -50,21 +51,24 @@ class Oauth:
 # 아직 클라이언트가 없으므로 서버에서 로그인 페이지 생성
 @router.get('/login')
 def kakao():
-    url = f"https://kauth.kakao.com/oauth/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}"
+    url = f"https://kauth.kakao.com/oauth/authorize?client_id={REST_API_KEY}&response_type=code&redirect_uri={REDIRECT_URI}"
     response = RedirectResponse(url)
     return response
 
 # 클라이언트에서 카카오 로그인 후 code 전송
-@router.get('/auth')
-async def kakaoAuth(response: Response, code: Optional[str]="NONE"):
+@router.post('/auth')
+async def kakaoAuth(request: Request):
 
+    body = await request.json()
+    # code = item.code
+    code = body['code']
     # 전달받은 authorization code를 통해서 access_token을 발급
     oauth = Oauth()
     auth_info = oauth.auth(code)
 
     # error 발생
     if "error" in auth_info:
-        logger.debug("error")
+        logger.debug(auth_info)
         return JSONResponse(content={'message': 'authentication fail'}, status_code=404)
 
     user = oauth.userinfo("Bearer " + auth_info['access_token'])
@@ -88,18 +92,14 @@ async def kakaoAuth(response: Response, code: Optional[str]="NONE"):
 
     user = serverdb.getUserInfoFromServer(id) # db에서 id로 유저 검색해서 대입
 
-    print(user['code'])
     if user['code'] == 0: # 만약 회원가입이 안 된 유저라면
         # db 에 user 추가
         serverdb.createAccount(id, name, apikey=Declaration.appKey, secret=Declaration.secret, cano='50067576', acnt='01', quantity=1000000)
 
     # 세션에 user 추가 로직 구현
-    sessiondb.createSession(id, 'dummy', serverdb)
+    uid = sessiondb.createSession(id, 'dummy', serverdb)['uuid']
 
-    # message = '로그인에 성공하였습니다.\n'
-    # value = {"status": 200, "result": "success", "msg": message}
-
-    return {"login" : "success"}
+    return {"uuid" : uid}
 
 '''
 @router.get('/logout')
