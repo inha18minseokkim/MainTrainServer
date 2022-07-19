@@ -2,11 +2,14 @@ from fastapi import FastAPI, Request
 import json,requests,random,uuid,contextvars,time
 from fastapi.responses import JSONResponse
 from loguru import logger
+import DBManager
 import Stock_Price
+import AccountManager
 import Declaration
 from routers import investment,test,login
 from pydantic import BaseModel
-
+import Container
+from Container import maincontainer
 # session 인증 안받는 api 목록
 whiteList = ['/login', '/auth', ] 
 
@@ -14,12 +17,23 @@ app = FastAPI()
 app.include_router(investment.router, prefix='')
 app.include_router(test.router, prefix='')
 app.include_router(login.router, prefix='')
+app.include_router(Container.router,prefix='')
 
 request_id_contextvar = contextvars.ContextVar("request_id", default=None)
 
 @app.on_event("startup") #시작 시 실행되는 메소드 나중에 로그인으로 구현해야 함.
 async def on_app_start() -> None:
+    global maincontainer
     Declaration.initiate()
+    maincontainer = Container.MainContainer()
+    sesdb = maincontainer.sessiondb_provider()
+    serdb = maincontainer.serverdb_provider()
+    trader = maincontainer.trade_provider()
+    tmpuuid = sesdb.createSession('12181577','token',serdb)[DBManager.UUID]
+    print(tmpuuid)
+    account = AccountManager.Account(tmpuuid,sesdb,serdb)
+    account.rebalance(trader)
+
 
 @app.middleware("http")
 async def request_middleware(request: Request, call_next):

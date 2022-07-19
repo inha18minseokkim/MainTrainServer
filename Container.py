@@ -1,9 +1,11 @@
+from fastapi import APIRouter
 import DBManager
 import Trader
 import AccountManager
 import uuid
 import Declaration
 from dependency_injector import containers, providers
+maincontainer = None
 class MainContainer(containers.DeclarativeContainer):
     def __init__(self):
         print("DBContainer initiated")
@@ -17,6 +19,31 @@ class MainContainer(containers.DeclarativeContainer):
     sessiondb_provider = providers.Singleton(DBManager.SessionDBManager)
     #trader 도메인 기능
     trade_provider = providers.Factory(Trader.TradeManager,_sessiondb=sessiondb_provider,_serverdb=serverdb_provider)
+router = APIRouter()
+@router.get('/test?param={par}')
+async def fortest(par: str):
+    return par
+
+#유저 정보 관련 API
+@router.get('/getUserInfo/{uuid}')
+async def getUserInfo(uuid: str):
+    global maincontainer
+    maincontainer = MainContainer()
+    print(maincontainer)
+    print(uuid)
+    sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
+    res = sesdb.getSessionInfo(uuid)
+    print(res,type(res))
+    del res['_id']
+    return res
+@router.get('/setUserNickName/{uuid}/{target}')
+async def setUserNickName(uuid: str, target: str):
+    global maincontainer
+    maincontainer = MainContainer()
+    sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
+    serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    sesdb.editSession(uuid,{DBManager.NICKNAME:target},serdb)
+    return {'code' : 1}
 
 if __name__ == "__main__":#Unit test를 위한 공간
     Declaration.initiate()

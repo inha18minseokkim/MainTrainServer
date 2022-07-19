@@ -47,7 +47,6 @@ class Oauth:
             data={}
         ).json()
 
-
 # 아직 클라이언트가 없으므로 서버에서 로그인 페이지 생성
 @router.get('/login')
 def kakao():

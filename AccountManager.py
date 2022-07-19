@@ -19,7 +19,7 @@ class Account:
         self.cano = self.userinfo[DBManager.CANO]
         self.acnt = self.userinfo[DBManager.ACNT]
         #ratio는 내가 설정해놓은 비율
-        self.ratio = self.serverdb.getStockRatio(self.kakaoid)
+        self.ratio: dict = self.serverdb.getStockRatio(self.kakaoid)
         print(self.kakaoid)
         print(self.ratio)
         self.total = 0 #총평가금액
@@ -65,8 +65,9 @@ class Account:
         print(res2)
         self.curaccount = []
         for column in res1:
-            node = [column['pdno'],column['prdt_name'],column['hldg_qty'],column['pchs_avg_pric'],column['pchs_amt'],
-                    column['prpr'],column['evlu_amt'],column['evlu_pfls_amt'],column['evlu_pfls_rt']]
+            node = {'pdno': column['pdno'], 'prdt_name':column['prdt_name'], 'hldg_qty':int(column['hldg_qty']),'pchs_avg_pric':float(column['pchs_avg_pric']),
+                    'pchs_amt' : int(column['pchs_amt']),
+                    'prpr': int(column['prpr']), 'evlu_amt' : int(column['evlu_amt']),'evlu_pfls_amt': int(column['evlu_pfls_amt']),'evlu_pfls_rt': float(column['evlu_pfls_rt'])}
             self.curaccount.append(node)
         #pdno 종목코드
         #prdt_name 종목명
@@ -77,15 +78,42 @@ class Account:
         #evlu_amt 평가금액
         #evlu_pfls_amt 평가손익금액
         #evlu_pfls_rt 평가손익율
-        self.total = res2['tot_evlu_amt']  # 총평가금액
-        self.deposit = res2['dnca_tot_amt']  # 예수금총금액
-        self.eval = res2['scts_evlu_amt'] # 유가평가금액
-        self.sumofprch = res2['pchs_amt_smtl_amt']  # 매입금액합계금액
-        self.sumofern = res2['evlu_pfls_smtl_amt']  # 평가손익합계금액
-        self.assticdc = res2['asst_icdc_amt']  # 자산증감액
-        self.assticdcrt = res2['asst_icdc_erng_rt']  # 자산증감수익률
-    def rebalance(self):
-        pass
+        self.total = int(res2['tot_evlu_amt'])  # 총평가금액
+        self.deposit = int(res2['dnca_tot_amt'])  # 예수금총금액
+        self.eval = int(res2['scts_evlu_amt']) # 유가평가금액
+        self.sumofprch = int(res2['pchs_amt_smtl_amt'])  # 매입금액합계금액
+        self.sumofern = int(res2['evlu_pfls_smtl_amt'])  # 평가손익합계금액
+        self.assticdc = int(res2['asst_icdc_amt'])  # 자산증감액
+        self.assticdcrt = float(res2['asst_icdc_erng_rt'])  # 자산증감수익률
+    def rebalance(self, trader: Trader.TradeManager):
+        #현재 포트폴리오에 이만큼 운용하세요 하고 설정해놓은 금액 값 -> self.quantity
+        print(self.quantity)
+        #현재 유가평가금액총액 -> self.eval
+        print(self.eval)
+        #현재 유가 비율 -> self.curaccount
+        print(self.curaccount)
+        #설정된 유가 비율 -> self.ratio
+        print(self.ratio)
+        #현재 설정해놓은 금액 self.quantity에 ratio를 곱해서 각 종목별로 얼마씩 투자해야되는지 확인 해야됨
+        targetaccount = { k:int(v*self.quantity) for k,v in self.ratio.items() }
+        del targetaccount['code']
+        tmpaccount = {a['pdno']:int(a['pchs_amt']) for a in self.curaccount}
+        print(tmpaccount)
+        print(targetaccount)
+        #현재 잔고의 각 종목별 총액(현재가 x 주식수)를 구한다. ->self.curaccount의 pchs_amt를 사용
+        buyrequest = []
+        sellrequest = []
+        for k,v in targetaccount.items(): #targetaccount -> 목표로 하는 잔고정보 tmpaccount -> 현재 가지고 있는 잔고정보
+            diff = v-tmpaccount[k]
+            if diff > 0:
+                print(k,'를',diff,'만큼 더 사야됨')
+                buyrequest.append([k,diff])
+            elif diff < 0:
+                print(print(k,'를',diff,'만큼 팔아야됨'))
+                sellrequest.append([k,diff])
+        #이제 현재가격으로 나눈만큼 수량 주문하면됨
+
+        return {'code' : 1}
 
 
 
