@@ -6,6 +6,7 @@ from Container import MainContainer
 from pydantic import BaseModel
 import requests
 import Declaration
+import uuid
 router = APIRouter()
 
 # 일단 임시로 카카오 api 키 받음
@@ -69,7 +70,7 @@ async def kakaoAuth(request: Request):
     # error 발생
     if "error" in auth_info:
         logger.debug(auth_info)
-        return JSONResponse(content={'message': 'authentication fail'}, status_code=404)
+        return JSONResponse(content={'message': 'authentication fail', **auth_info}, status_code=404)
 
     user = oauth.userinfo("Bearer " + auth_info['access_token'])
     '''
@@ -97,9 +98,10 @@ async def kakaoAuth(request: Request):
         serverdb.createAccount(id, name, apikey=Declaration.appKey, secret=Declaration.secret, cano='50067576', acnt='01', quantity=1000000)
 
     # 세션에 user 추가 로직 구현
-    uid = sessiondb.createSession(id, 'dummy', serverdb)['uuid']
+    # uid = sessiondb.createSession(id, 'dummy', serverdb)['uuid']
 
-    return {"uuid" : uid}
+    # return {'uuid' : uid, 'registration' : user['code']^1 }
+    return {'uuid' : uuid.uuid4(), 'registration': 1, 'name': name}
 
 '''
 @router.get('/logout')
