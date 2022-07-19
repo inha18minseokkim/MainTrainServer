@@ -10,6 +10,7 @@ from routers import investment,test,login
 from pydantic import BaseModel
 import Container
 from Container import maincontainer
+from starlette.middleware.cors import CORSMiddleware
 # session 인증 안받는 api 목록
 whiteList = ['/login', '/auth', ] 
 
@@ -18,6 +19,18 @@ app.include_router(investment.router, prefix='')
 app.include_router(test.router, prefix='')
 app.include_router(login.router, prefix='')
 app.include_router(Container.router,prefix='')
+
+origins = [
+    "*"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 request_id_contextvar = contextvars.ContextVar("request_id", default=None)
 
@@ -34,7 +47,7 @@ async def on_app_start() -> None:
     account = AccountManager.Account(tmpuuid,sesdb,serdb)
     account.rebalance(trader)
 
-
+'''
 @app.middleware("http")
 async def request_middleware(request: Request, call_next):
     start_time = time.time()
@@ -49,13 +62,13 @@ async def request_middleware(request: Request, call_next):
 
 
     # 모든 api에 세션 인증 일괄 적용
-    '''
+    
     if reuqest['path'] not in whilteList:
         body = await request.json()
         seesionId = body.get('access')
         if DBManager.getSessionInfo(seesionId) == 0:
             return JSONResponse(content={"error": "Unauthorized"}, status_code=401)
-    '''
+    
 
     try:
         return await call_next(request)
@@ -68,3 +81,4 @@ async def request_middleware(request: Request, call_next):
         assert request_id_contextvar.get() == request_id
         process_time = time.time() - start_time
         logger.debug(f"[{request_id}] Request Ended {process_time} Seconds")
+'''
