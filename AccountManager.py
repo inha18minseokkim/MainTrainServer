@@ -1,7 +1,9 @@
 import Declaration
 import DBManager
+import logging
 import requests,json
 import Trader
+import threading
 import Container
 import uuid
 class Account:
@@ -105,13 +107,21 @@ class Account:
         sellrequest = []
         for k,v in targetaccount.items(): #targetaccount -> 목표로 하는 잔고정보 tmpaccount -> 현재 가지고 있는 잔고정보
             diff = v-tmpaccount[k]
+            curprice = 30000 #이거 가격 불러오는 모듈 구현해야됨
             if diff > 0:
                 print(k,'를',diff,'만큼 더 사야됨')
-                buyrequest.append([k,diff])
+                buyrequest.append([k,int(diff//curprice)])
             elif diff < 0:
                 print(print(k,'를',diff,'만큼 팔아야됨'))
-                sellrequest.append([k,diff])
+                sellrequest.append([k,int(diff//curprice)])
         #이제 현재가격으로 나눈만큼 수량 주문하면됨
+        threadlist = []
+        for code,quantity in buyrequest:
+            threadlist.append(trader.buyMarketPrice(code,quantity))
+        for code,quantity in sellrequest:
+            threadlist.append(trader.sellMarketPrice(code,quantity))
+        for i in threadlist:
+            i.join()
 
         return {'code' : 1}
 
