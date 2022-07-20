@@ -5,6 +5,7 @@ import uuid
 import requests, json
 import bson
 import pydantic
+from loguru import logger
 from dependency_injector import containers, providers
 from ast import literal_eval
 
@@ -36,11 +37,11 @@ class ServerDBManager:
         # client = pymongo.MongoClient(
         #     f"mongodb+srv://admin1:{Declaration.serverDBPW}@cluster0.qbpab.mongodb.net/?retryWrites=true&w=majority")
         self.serverdb = self.client.TradingDB
-        print("serverdb 초기화 완료", self.serverdb)
+        logger.debug("serverdb 초기화 완료", self.serverdb)
 
     def createAccount(self, kakaoid: str, nickname: str, apikey: str, secret: str, cano: str, acnt: str, quantity=0):
         if self.getUserInfoFromServer(kakaoid)['code'] == 1:#서버에 해당 유저가 있으면 계정 생성 못함
-            print("createAccount",kakaoid,"계정 정보가 이미 있으므로 계정생성 못함")
+            logger.debug("createAccount",kakaoid,"계정 정보가 이미 있으므로 계정생성 못함")
             return {'code':0}
         self.serverdb.user.insert_one(
             {KAKAOID: kakaoid, NICKNAME: nickname, APIKEY: apikey, SECRET: secret, QUANTITY: quantity
@@ -70,7 +71,7 @@ class ServerDBManager:
         tmp = self.getUserInfoFromServer(kakaoid)
         res = tmp['code']
         if res == 0:
-            print('editUserInfo : 해당 유저 찾을 수 없음', kakaoid)
+            logger.debug('editUserInfo : 해당 유저 찾을 수 없음', kakaoid)
             return {'code': 0}
         idquery = {KAKAOID: kakaoid}
         values = {"$set": dic}
@@ -80,7 +81,7 @@ class ServerDBManager:
     def delUserInfo(self,kakaoid: str):
         # 회원탈퇴시 회원정보 삭제
         if self.getUserInfoFromServer(kakaoid)['code'] == 0:
-            print('delUserInfo : 해당 유저 찾을 수 없음', kakaoid)
+            logger.debug('delUserInfo : 해당 유저 찾을 수 없음', kakaoid)
             return {'code': 0}
         idquery = {KAKAOID: kakaoid}
         self.serverdb.user.delete_one(idquery)
@@ -93,14 +94,14 @@ class ServerDBManager:
             return {'code': 0}
         res = {k: float(v) for k, v in dict(literal_eval(res[0][STKLST])).items()}
         res['code'] = 1
-        print('kakaoid에 대한 주가 비율 정보를 요청함', res)
+        logger.debug('kakaoid에 대한 주가 비율 정보를 요청함', res)
         return res
 
 class SessionDBManager:
     def __init__(self):
         self.client = pymongo_inmemory.MongoClient()
         self.sessiondb = self.client.sessionDB
-        print("sessiondb 초기화 완료", self.sessiondb)
+        logger.debug("sessiondb 초기화 완료", self.sessiondb)
 
     def createDummyData(self):  # Unit test용 페이크 데이터 하나 만들어서 세션db에 넣음
         self.sessiondb.user.insert_one({KAKAOID: '12181577', SESSIONID: "1971301676", NICKNAME: '김민석', UUID:uuid.uuid4(),
@@ -111,10 +112,10 @@ class SessionDBManager:
                                    QUANTITY: 1000000})
     def createSession(self, kakaoid: str, kakaotoken: str, serverdb: ServerDBManager):  # 서버에 있는 정보를 갖고 와서 세션을 만듬
         cursor = serverdb.getUserInfoFromServer(kakaoid)
-        print(kakaoid,'에 대한 세션 생성')
+        logger.debug(kakaoid,'에 대한 세션 생성')
         res = cursor
         if res['code'] == 0:  # 정보가 없으면 0을 리턴
-            print("createSession: ",kakaoid,"에 대한 정보가 서버에 없음. 회원가입 먼저")
+            logger.debug("createSession: ",kakaoid,"에 대한 정보가 서버에 없음. 회원가입 먼저")
             return {'code': 0}
         res[UUID] = uuid.uuid4().hex
 
@@ -124,14 +125,14 @@ class SessionDBManager:
                 "appsecret": res[SECRET]}
         path = "oauth2/tokenP"
         url = f"{Declaration.Base_URL}/{path}"
-        print(f"{url}로 보안인증 키 요청")
+        logger.debug(f"{url}로 보안인증 키 요청")
         tokenres = requests.post(url, headers=headers, data=json.dumps(body)).json()
         res[TOKEN] = tokenres['access_token']
-        print(f"token 생성 완료, 현재 계정 정보 {res[APIKEY]} {res[SECRET]} {kakaotoken} {res[TOKEN]}")
+        logger.debug(f"token 생성 완료, 현재 계정 정보 {res[APIKEY]} {res[SECRET]} {kakaotoken} {res[TOKEN]}")
 
         res[LOGINTOKEN] = kakaotoken
         self.sessiondb.user.insert_one(res)
-        print("세션생성 완료",res)
+        logger.debug("세션생성 완료",res)
         return {'code': 1, UUID : res[UUID]}
 
     def isSessionAvailable(self,userUUID: uuid.UUID):  # api를 호출 하기 전 해당 세션이 있는지
@@ -166,13 +167,13 @@ class SessionDBManager:
         tmp = self.getSessionInfo(userUUID)
         kakaoid = tmp[KAKAOID]
         if tmp['code'] == 0:
-            print('editUserInfo : 해당 유저 찾을 수 없음', userUUID)
+            logger.debug('editUserInfo : 해당 유저 찾을 수 없음', userUUID)
             return {'code': 0}
         idquery = {UUID: userUUID}
         values = {"$set": dic}
         self.sessiondb.user.update_one(idquery, values)
         servermanager.editUserInfo(kakaoid,dic)
-        print("editSession: 수정 완료")
+        logger.debug("editSession: 수정 완료")
         return {'code': 1}
 
 

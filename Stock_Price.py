@@ -1,10 +1,11 @@
 import Declaration
 import requests
+from loguru import logger
 def getStockInfo(code):
     #global appKey, secret, token, Base_URL
-    print(f"{code}에 대한 주가 정보를 요청함")
-    print(f"{Declaration.appKey} {Declaration.secret}")
-    print(f"{Declaration.token}")
+    logger.debug(f"{code}에 대한 주가 정보를 요청함")
+    logger.debug(f"{Declaration.appKey} {Declaration.secret}")
+    logger.debug(f"{Declaration.token}")
     headers = {
         "content-type": 'application/json',
         "authorization": f"Bearer {Declaration.token}",
@@ -19,5 +20,5 @@ def getStockInfo(code):
     path = "uapi/domestic-stock/v1/quotations/inquire-price"
     url = f"{Declaration.Base_URL}/{path}"
     res = requests.get(url,headers=headers,params=params).json()
-    print(res)
+    logger.debug(res)
     return res

@@ -40,7 +40,7 @@ async def on_app_start() -> None:
     serdb = maincontainer.serverdb_provider()
     trader = maincontainer.trade_provider()
     tmpuuid = sesdb.createSession('12181577','token',serdb)[DBManager.UUID]
-    print(tmpuuid)
+    logger.debug(tmpuuid)
     account = AccountManager.Account(tmpuuid,sesdb,serdb)
     account.rebalance(trader)
 

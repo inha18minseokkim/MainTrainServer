@@ -1,6 +1,6 @@
 import Declaration
 import DBManager
-import logging
+from loguru import logger
 import requests,json
 import Trader
 import threading
@@ -11,7 +11,7 @@ class Account:
         self.sessiondb = _sessiondb
         self.serverdb = _serverdb
         self.userinfo = self.sessiondb.getSessionInfo(sessionuuid)
-        print(self.userinfo)
+        logger.debug(self.userinfo)
         self.kakaoid = self.userinfo[DBManager.KAKAOID]
         self.nickname = self.userinfo[DBManager.NICKNAME]
         self.apikey = self.userinfo[DBManager.APIKEY]
@@ -22,8 +22,8 @@ class Account:
         self.acnt = self.userinfo[DBManager.ACNT]
         #ratio는 내가 설정해놓은 비율
         self.ratio: dict = self.serverdb.getStockRatio(self.kakaoid)
-        print(self.kakaoid)
-        print(self.ratio)
+        logger.debug(self.kakaoid)
+        logger.debug(self.ratio)
         self.total = 0 #총평가금액
         self.deposit = 0 #예수금총금액
         self.eval = 0 #유가평가금액
@@ -33,8 +33,8 @@ class Account:
         self.assticdcrt = 0.0 #자산증감수익률
         self.curaccount: list = []
         self.getcurAccountInfo()
-        print(self.curaccount)
-        print(self.total,self.deposit,self.eval,self.sumofprch,self.sumofern,self.assticdc,self.assticdcrt)
+        logger.debug(self.curaccount)
+        # logger.debug(self.total,self.deposit,self.eval,self.sumofprch,self.sumofern,self.assticdc,self.assticdcrt)
 
     def getcurAccountInfo(self): #현재 내 잔고 현황 가져와서 딕셔너리 형태로
         #잔고 현황을 가져오는 것
@@ -64,7 +64,7 @@ class Account:
         res = requests.get(url, headers=headers, params=params).json()
         res1 = res['output1']
         res2 = res['output2'][0]
-        print(res2)
+        logger.debug(res2)
         self.curaccount = []
         for column in res1:
             node = {'pdno': column['pdno'], 'prdt_name':column['prdt_name'], 'hldg_qty':int(column['hldg_qty']),'pchs_avg_pric':float(column['pchs_avg_pric']),
@@ -89,19 +89,19 @@ class Account:
         self.assticdcrt = float(res2['asst_icdc_erng_rt'])  # 자산증감수익률
     def rebalance(self, trader: Trader.TradeManager):
         #현재 포트폴리오에 이만큼 운용하세요 하고 설정해놓은 금액 값 -> self.quantity
-        print(self.quantity)
+        logger.debug(self.quantity)
         #현재 유가평가금액총액 -> self.eval
-        print(self.eval)
+        logger.debug(self.eval)
         #현재 유가 비율 -> self.curaccount
-        print(self.curaccount)
+        logger.debug(self.curaccount)
         #설정된 유가 비율 -> self.ratio
-        print(self.ratio)
+        logger.debug(self.ratio)
         #현재 설정해놓은 금액 self.quantity에 ratio를 곱해서 각 종목별로 얼마씩 투자해야되는지 확인 해야됨
         targetaccount = { k:int(v*self.quantity) for k,v in self.ratio.items() }
         del targetaccount['code']
         tmpaccount = {a['pdno']:int(a['pchs_amt']) for a in self.curaccount}
-        print(tmpaccount)
-        print(targetaccount)
+        logger.debug(tmpaccount)
+        logger.debug(targetaccount)
         #현재 잔고의 각 종목별 총액(현재가 x 주식수)를 구한다. ->self.curaccount의 pchs_amt를 사용
         buyrequest = []
         sellrequest = []
@@ -109,17 +109,19 @@ class Account:
             diff = v-tmpaccount[k]
             curprice = 30000 #이거 가격 불러오는 모듈 구현해야됨
             if diff > 0:
-                print(k,'를',diff,'만큼 더 사야됨')
+                logger.debug(k,'를',diff,'만큼 더 사야됨')
                 buyrequest.append([k,int(diff//curprice)])
             elif diff < 0:
-                print(print(k,'를',diff,'만큼 팔아야됨'))
+                logger.debug(k,'를',diff,'만큼 팔아야됨')
                 sellrequest.append([k,int(diff//curprice)])
         #이제 현재가격으로 나눈만큼 수량 주문하면됨
         threadlist = []
         for code,quantity in buyrequest:
-            threadlist.append(trader.buyMarketPrice(code,quantity))
+            pass
+            # threadlist.append(trader.buyMarketPrice(code,quantity))
         for code,quantity in sellrequest:
-            threadlist.append(trader.sellMarketPrice(code,quantity))
+            pass
+            # threadlist.append(trader.sellMarketPrice(code,quantity))
         for i in threadlist:
             i.join()
 

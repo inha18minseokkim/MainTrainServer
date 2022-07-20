@@ -3,6 +3,7 @@ import DBManager
 import requests
 import json
 import pydantic
+from loguru import logger
 from dependency_injector.providers import Singleton
 
 class TradeManager:
@@ -12,7 +13,7 @@ class TradeManager:
 
     def getHash(self, apikey: str, secret: str, data: dict):  # api post 요청 시 사용 할 hash 함수
         # 단독으로 사용하지 마세요. 세션이 없다는 조건을 guard 하지 않음
-        print('다음 정보를 hash', apikey, secret, data["CANO"], data["ACNT_PRDT_CD"])
+        logger.debug('다음 정보를 hash', apikey, secret, data["CANO"], data["ACNT_PRDT_CD"])
         path = "uapi/hashkey"
         url = f"{Declaration.Base_URL}/{path}"
         headers = {
@@ -25,7 +26,7 @@ class TradeManager:
 
     def buyMarketPrice(self, useruuid: str, code: str, quantity: int):  # 현금 주식 매입 주문
         cursession = self.sessionDB.getSessionInfo(useruuid)
-        print(useruuid,cursession)
+        logger.debug(useruuid,cursession)
         if cursession['code'] == 0:  # 현재 세션이 존재하지 않으면 0 리턴
             return {'code': 0}
         # httprequest 부분 시작
@@ -47,13 +48,13 @@ class TradeManager:
             "custtype": "P",
             "hashkey": h
         }
-        print(h)
-        print(cursession[DBManager.CANO], cursession[DBManager.ACNT], data['CANO'], data['ACNT_PRDT_CD'])
+        logger.debug(h)
+        logger.debug(cursession[DBManager.CANO], cursession[DBManager.ACNT], data['CANO'], data['ACNT_PRDT_CD'])
         path = "/uapi/domestic-stock/v1/trading/order-cash"
         url = f"{Declaration.Base_URL}/{path}"
         res = requests.post(url, headers=headers, data=json.dumps(data)).json()
         res['code'] = 1
-        print(res)
+        logger.debug(res)
         return res
 
     def sellMarketPrice(self, useruuid: str, code: str, quantity: int):  # 현금 주식 매도 주문
@@ -79,13 +80,13 @@ class TradeManager:
             "custtype": "P",
             "hashkey": h
         }
-        print(h)
-        print(cursession[DBManager.CANO], cursession[DBManager.ACNT], data['CANO'], data['ACNT_PRDT_CD'])
+        logger.debug(h)
+        logger.debug(cursession[DBManager.CANO], cursession[DBManager.ACNT], data['CANO'], data['ACNT_PRDT_CD'])
         path = "/uapi/domestic-stock/v1/trading/order-cash"
         url = f"{Declaration.Base_URL}/{path}"
         res = requests.post(url, headers=headers, data=json.dumps(data)).json()
         res['code'] = 1
-        print(res)
+        logger.debug(res)
         return res
 
 
@@ -97,11 +98,11 @@ if __name__ == "__main__":
     serverdb: DBManager.ServerDBManager = container.serverdb_provider()
     sessiondb: DBManager.SessionDBManager = container.sessiondb_provider()
     tmpuuid = sessiondb.createSession('12181577','tokentoken',serverdb)[DBManager.UUID]
-    print(sessiondb.getSessionInfo(tmpuuid))
+    logger.debug(sessiondb.getSessionInfo(tmpuuid))
     trader = TradeManager(container)
-    print(trader.sessionDB.getSessionInfo(tmpuuid))
-    print(trader.buyMarketPrice(tmpuuid,'005930',10))
-    print(trader.buyMarketPrice(tmpuuid, '003550', 10))
-    print(trader.buyMarketPrice(tmpuuid, '091170', 10))
-    print(sessiondb2.getSessionInfo(tmpuuid))
-    #print(sellMarketPrice('12181577','005930',1))
+    logger.debug(trader.sessionDB.getSessionInfo(tmpuuid))
+    logger.debug(trader.buyMarketPrice(tmpuuid,'005930',10))
+    logger.debug(trader.buyMarketPrice(tmpuuid, '003550', 10))
+    logger.debug(trader.buyMarketPrice(tmpuuid, '091170', 10))
+    logger.debug(sessiondb2.getSessionInfo(tmpuuid))
+    # logger.debug(sellMarketPrice('12181577','005930',1))

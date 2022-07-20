@@ -4,14 +4,15 @@ import Trader
 import AccountManager
 import uuid
 import Declaration
+from loguru import logger
 from dependency_injector import containers, providers
 maincontainer = None
 class MainContainer(containers.DeclarativeContainer):
     def __init__(self):
-        print("DBContainer initiated")
+        logger.debug("DBContainer initiated")
     def __new__(cls):
         if not hasattr(cls, "_instance"):
-            print("__new__ is called")
+            logger.debug("__new__ is called")
             cls._instance = super().__new__(cls)
         return cls._instance
     #dbmanager
@@ -29,11 +30,11 @@ async def fortest(par: str):
 async def getUserInfo(uuid: str):
     global maincontainer
     maincontainer = MainContainer()
-    print(maincontainer)
-    print(uuid)
+    logger.debug(maincontainer)
+    logger.debug(uuid)
     sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
     res = sesdb.getSessionInfo(uuid)
-    print(res,type(res))
+    logger.debug(res,type(res))
     del res['_id']
     return res
 @router.get('/setUserNickName/{uuid}/{target}')
@@ -52,15 +53,15 @@ if __name__ == "__main__":#Unit test를 위한 공간
     sessiondb = MainContainer().sessiondb_provider()
     #sessiondb2 = MainContainer().sessiondb_provider()
     tmpuuid = sessiondb.createSession('12181577','tokensample',serverdb)[DBManager.UUID]
-    print(tmpuuid,uuid.UUID(tmpuuid))
-    print(sessiondb.createSession('121815777','adsfasdfdas',serverdb))
-    print(sessiondb.editSession(tmpuuid,{DBManager.NICKNAME:'김민석석'},serverdb))
-    #print(sessiondb2.getSessionInfo(tmpuuid))
-    print(sessiondb.editSession(tmpuuid,{DBManager.NICKNAME:'민석김김'},serverdb))
-    print(sessiondb.getSessionInfo(tmpuuid))
+    logger.debug(tmpuuid,uuid.UUID(tmpuuid))
+    logger.debug(sessiondb.createSession('121815777','adsfasdfdas',serverdb))
+    logger.debug(sessiondb.editSession(tmpuuid,{DBManager.NICKNAME:'김민석석'},serverdb))
+    #logger.debug(sessiondb2.getSessionInfo(tmpuuid))
+    logger.debug(sessiondb.editSession(tmpuuid,{DBManager.NICKNAME:'민석김김'},serverdb))
+    logger.debug(sessiondb.getSessionInfo(tmpuuid))
     trader = MainContainer().trade_provider()
-    #print(trader.buyMarketPrice(tmpuuid,'005930',1))
+    #logger.debug(trader.buyMarketPrice(tmpuuid,'005930',1))
     account = AccountManager.Account(tmpuuid,sessiondb,serverdb)
-    print(account.ratio)
+    logger.debug(account.ratio)
     sessiondb2 = MainContainer().sessiondb_provider()
-    print(sessiondb2.getSessionInfo(tmpuuid))
+    logger.debug(sessiondb2.getSessionInfo(tmpuuid))
