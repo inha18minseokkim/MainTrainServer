@@ -42,6 +42,7 @@ async def on_app_start() -> None:
     tmpuuid = sesdb.createSession('12181577','token',serdb)[DBManager.UUID]
     logger.debug(tmpuuid)
     account = AccountManager.Account(tmpuuid,sesdb,serdb)
+    print("ASDasdf")
     account.rebalance(trader)
 
 '''

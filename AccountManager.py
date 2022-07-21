@@ -8,6 +8,7 @@ import Container
 import uuid
 class Account:
     def __init__(self, sessionuuid: uuid.UUID, _sessiondb, _serverdb):
+        self.uuid = sessionuuid
         self.sessiondb = _sessiondb
         self.serverdb = _serverdb
         self.userinfo = self.sessiondb.getSessionInfo(sessionuuid)
@@ -20,6 +21,7 @@ class Account:
         self.token = self.userinfo[DBManager.TOKEN]
         self.cano = self.userinfo[DBManager.CANO]
         self.acnt = self.userinfo[DBManager.ACNT]
+        self.curpricedic: dict = {}
         #ratio는 내가 설정해놓은 비율
         self.ratio: dict = self.serverdb.getStockRatio(self.kakaoid)
         logger.debug(self.kakaoid)
@@ -33,6 +35,9 @@ class Account:
         self.assticdcrt = 0.0 #자산증감수익률
         self.curaccount: list = []
         self.getcurAccountInfo()
+
+        logger.debug(self.curpricedic)
+        logger.debug('AccountManager 인스턴스 생성완료')
         logger.debug(self.curaccount)
         # logger.debug(self.total,self.deposit,self.eval,self.sumofprch,self.sumofern,self.assticdc,self.assticdcrt)
 
@@ -66,11 +71,13 @@ class Account:
         res2 = res['output2'][0]
         logger.debug(res2)
         self.curaccount = []
+        logger.debug(self.curpricedic)
         for column in res1:
             node = {'pdno': column['pdno'], 'prdt_name':column['prdt_name'], 'hldg_qty':int(column['hldg_qty']),'pchs_avg_pric':float(column['pchs_avg_pric']),
                     'pchs_amt' : int(column['pchs_amt']),
                     'prpr': int(column['prpr']), 'evlu_amt' : int(column['evlu_amt']),'evlu_pfls_amt': int(column['evlu_pfls_amt']),'evlu_pfls_rt': float(column['evlu_pfls_rt'])}
             self.curaccount.append(node)
+            self.curpricedic[column['pdno']] = int(column['prpr'])
         #pdno 종목코드
         #prdt_name 종목명
         #hldg_qty 보유수량
@@ -102,26 +109,31 @@ class Account:
         tmpaccount = {a['pdno']:int(a['pchs_amt']) for a in self.curaccount}
         logger.debug(tmpaccount)
         logger.debug(targetaccount)
+        logger.debug(self.curpricedic)
         #현재 잔고의 각 종목별 총액(현재가 x 주식수)를 구한다. ->self.curaccount의 pchs_amt를 사용
         buyrequest = []
         sellrequest = []
         for k,v in targetaccount.items(): #targetaccount -> 목표로 하는 잔고정보 tmpaccount -> 현재 가지고 있는 잔고정보
             diff = v-tmpaccount[k]
-            curprice = 30000 #이거 가격 불러오는 모듈 구현해야됨
+            curprice = self.curpricedic[k] #이거 가격 불러오는 모듈 구현해야됨
             if diff > 0:
                 logger.debug(k,'를',diff,'만큼 더 사야됨')
-                buyrequest.append([k,int(diff//curprice)])
+                if diff//curprice != 0:
+                    buyrequest.append([k,int(diff//curprice)])
             elif diff < 0:
                 logger.debug(k,'를',diff,'만큼 팔아야됨')
-                sellrequest.append([k,int(diff//curprice)])
+                if diff//curprice != 0:
+                    sellrequest.append([k,int(diff//curprice)])
         #이제 현재가격으로 나눈만큼 수량 주문하면됨
         threadlist = []
         for code,quantity in buyrequest:
-            pass
-            # threadlist.append(trader.buyMarketPrice(code,quantity))
+            t = threading.Thread(target = trader.buyMarketPrice,args = (self.uuid, code,quantity))
+            threadlist.append(t)
+            t.start()
         for code,quantity in sellrequest:
-            pass
-            # threadlist.append(trader.sellMarketPrice(code,quantity))
+            t = threading.Thread(target = trader.sellMarketPrice, args = (self.uuid, code,quantity))
+            threadlist.append(t)
+            t.start()
         for i in threadlist:
             i.join()
 
