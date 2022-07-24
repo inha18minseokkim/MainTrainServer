@@ -2,23 +2,24 @@ import Declaration
 import DBManager
 from loguru import logger
 import requests,json
-import Trader
 import threading
 import Container
 import uuid
 class Account:
-    def __init__(self, sessionuuid: uuid.UUID, _sessiondb, _serverdb):
-        self.uuid = sessionuuid
-        self.sessiondb = _sessiondb
+    def __init__(self, kakaoid: str, _serverdb):
+        self.state = 0
         self.serverdb = _serverdb
-        self.userinfo = self.sessiondb.getSessionInfo(sessionuuid)
+        self.userinfo = self.serverdb.getUserInfoFromServer(kakaoid)
+        if self.userinfo['code'] == 0:
+            self.state = 0
+            logger.debug(f'Account : {kakaoid} 에 대한 계정정보 서버에서 불러오기 실패')
+            return
         logger.debug(self.userinfo)
         self.kakaoid = self.userinfo[DBManager.KAKAOID]
         self.nickname = self.userinfo[DBManager.NICKNAME]
         self.apikey = self.userinfo[DBManager.APIKEY]
         self.secret = self.userinfo[DBManager.SECRET]
         self.quantity = self.userinfo[DBManager.QUANTITY]
-        self.token = self.userinfo[DBManager.TOKEN]
         self.cano = self.userinfo[DBManager.CANO]
         self.acnt = self.userinfo[DBManager.ACNT]
         self.curpricedic: dict = {}
@@ -34,12 +35,27 @@ class Account:
         self.assticdc = 0 #자산증감액
         self.assticdcrt = 0.0 #자산증감수익률
         self.curaccount: list = []
+
+
+        #kakaoid에 해당하는 token을 한국투자에서 가져오기 위한 주문
+        headers = {"content-type": "application/json"}
+        body = {"grant_type": "client_credentials",
+                "appkey": self.apikey,
+                "appsecret": self.secret}
+        path = "oauth2/tokenP"
+        url = f"{Declaration.Base_URL}/{path}"
+        logger.debug(f"{url}로 보안인증 키 요청")
+        tokenres = requests.post(url, headers=headers, data=json.dumps(body)).json()
+        self.token = tokenres['access_token']
+        logger.debug(f"token 생성 완료, 현재 계정 정보 {self.kakaoid},{self.token}")
+#       token을 가져왔으니 한국투자 api에 연결해서 세부 잔고정보도 가져옴.
         self.getcurAccountInfo()
 
         logger.debug(self.curpricedic)
         logger.debug('AccountManager 인스턴스 생성완료')
         logger.debug(self.curaccount)
         # logger.debug(self.total,self.deposit,self.eval,self.sumofprch,self.sumofern,self.assticdc,self.assticdcrt)
+        self.state = 1
 
     def getcurAccountInfo(self): #현재 내 잔고 현황 가져와서 딕셔너리 형태로
         #잔고 현황을 가져오는 것
@@ -94,61 +110,38 @@ class Account:
         self.sumofern = int(res2['evlu_pfls_smtl_amt'])  # 평가손익합계금액
         self.assticdc = int(res2['asst_icdc_amt'])  # 자산증감액
         self.assticdcrt = float(res2['asst_icdc_erng_rt'])  # 자산증감수익률
-    def rebalance(self, trader: Trader.TradeManager):
-        #현재 포트폴리오에 이만큼 운용하세요 하고 설정해놓은 금액 값 -> self.quantity
-        logger.debug(self.quantity)
-        #현재 유가평가금액총액 -> self.eval
-        logger.debug(self.eval)
-        #현재 유가 비율 -> self.curaccount
-        logger.debug(self.curaccount)
-        #설정된 유가 비율 -> self.ratio
-        logger.debug(self.ratio)
-        #현재 설정해놓은 금액 self.quantity에 ratio를 곱해서 각 종목별로 얼마씩 투자해야되는지 확인 해야됨
-        targetaccount = { k:int(v*self.quantity) for k,v in self.ratio.items() }
-        del targetaccount['code']
-        tmpaccount = {a['pdno']:int(a['pchs_amt']) for a in self.curaccount}
-        logger.debug(tmpaccount)
-        logger.debug(targetaccount)
-        logger.debug(self.curpricedic)
-        #현재 잔고의 각 종목별 총액(현재가 x 주식수)를 구한다. ->self.curaccount의 pchs_amt를 사용
-        buyrequest = []
-        sellrequest = []
-        for k,v in targetaccount.items(): #targetaccount -> 목표로 하는 잔고정보 tmpaccount -> 현재 가지고 있는 잔고정보
-            diff = v-tmpaccount[k]
-            curprice = self.curpricedic[k] #이거 가격 불러오는 모듈 구현해야됨
-            if diff > 0:
-                logger.debug(k,'를',diff,'만큼 더 사야됨')
-                if diff//curprice != 0:
-                    buyrequest.append([k,int(diff//curprice)])
-            elif diff < 0:
-                logger.debug(k,'를',diff,'만큼 팔아야됨')
-                if diff//curprice != 0:
-                    sellrequest.append([k,int(diff//curprice)])
-        #이제 현재가격으로 나눈만큼 수량 주문하면됨
-        threadlist = []
-        for code,quantity in buyrequest:
-            t = threading.Thread(target = trader.buyMarketPrice,args = (self.uuid, code,quantity))
-            threadlist.append(t)
-            t.start()
-        for code,quantity in sellrequest:
-            t = threading.Thread(target = trader.sellMarketPrice, args = (self.uuid, code,quantity))
-            threadlist.append(t)
-            t.start()
-        for i in threadlist:
-            i.join()
-
-        return {'code' : 1}
+    def getAccountInfoDictionary(self) -> dict:
+        return {
+            'state': self.state,
+            'kakaoid': self.kakaoid,
+            'nickname': self.nickname,
+            'apikey': self.apikey,
+            'secret': self.secret,
+            'quantity': self.quantity,
+            'cano': self.cano,
+            'acnt': self.acnt,
+            'curpricedic': self.curpricedic,
+            'ratio': self.ratio,
+            'total': self.total,
+            'deposit': self.deposit,
+            'eval': self.eval,
+            'sumofprch': self.sumofprch,
+            'sumofern': self.sumofern,
+            'assticdc': self.assticdc,
+            'assticdcrt': self.assticdcrt,
+            'curaccount': self.curaccount,
+            'token': self.token,
+        }
 
 
 
 
 if __name__ == "__main__":
     Declaration.initiate()
-    container = DBManager.DBContainer()
-    container2 = DBManager.DBContainer()
-    sessiondb2 = container2.sessiondb_provider()
+    container = Container.MainContainer()
     serverdb: DBManager.ServerDBManager = container.serverdb_provider()
     sessiondb: DBManager.SessionDBManager = container.sessiondb_provider()
-    tmpuuid = sessiondb.createSession('12181577','tokentoken',serverdb)[DBManager.UUID]
-    account = Account(tmpuuid)
+    account: Account = Account('12181577',serverdb)
+    print(account.token,account.kakaoid)
+    print(account.getAccountInfoDictionary())
 

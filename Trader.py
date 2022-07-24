@@ -1,3 +1,7 @@
+import threading
+
+import AccountManager
+import Container
 import Declaration
 import DBManager
 import requests
@@ -7,10 +11,8 @@ from loguru import logger
 from dependency_injector.providers import Singleton
 
 class TradeManager:
-    def __init__(self,_sessiondb,_serverdb):
-        self.sessionDB = _sessiondb
-        self.serverDB = _serverdb
-
+    def __init__(self):
+        return
     def getHash(self, apikey: str, secret: str, data: dict):  # api post 요청 시 사용 할 hash 함수
         # 단독으로 사용하지 마세요. 세션이 없다는 조건을 guard 하지 않음
         logger.debug('다음 정보를 hash', apikey, secret, data["CANO"], data["ACNT_PRDT_CD"])
@@ -24,32 +26,31 @@ class TradeManager:
         res = requests.post(url, headers=headers, data=json.dumps(data)).json()
         return res['HASH']
 
-    def buyMarketPrice(self, useruuid: str, code: str, quantity: int):  # 현금 주식 매입 주문
-        cursession = self.sessionDB.getSessionInfo(useruuid)
-        logger.debug(useruuid,cursession)
-        if cursession['code'] == 0:  # 현재 세션이 존재하지 않으면 0 리턴
-            return {'code': 0}
+    def buyMarketPrice(self, account: AccountManager.Account, code: str, quantity: int):  # 현금 주식 매입 주문
+        if account.state == 0:
+            return {'code' : 0 , 'msg' : 'account객체가 제대로 initiated 되지 않음'}
+        logger.debug(account.kakaoid)
         # httprequest 부분 시작
         data = {
-            "CANO": cursession[DBManager.CANO],
-            "ACNT_PRDT_CD": cursession[DBManager.ACNT],
+            "CANO": account.cano,
+            "ACNT_PRDT_CD": account.acnt,
             "PDNO": f"{code}",  # 종목코드
             "ORD_DVSN": "01",  # 시장가 코드
             "ORD_QTY": f"{quantity}",  # 수량
             "ORD_UNPR": "0",  # 가격은 시장가이므로 비워놔
         }
-        h = self.getHash(cursession[DBManager.APIKEY], cursession[DBManager.SECRET], data)
+        h = self.getHash(account.apikey, account.secret, data)
         headers = {
             "content-type": 'application/json',
-            "authorization": f"Bearer {cursession[DBManager.TOKEN]}",
-            "appKey": cursession[DBManager.APIKEY],
-            "appSecret": cursession[DBManager.SECRET],
+            "authorization": f"Bearer {account.token}",
+            "appKey": account.apikey,
+            "appSecret": account.secret,
             "tr_id": "VTTC0802U",
             "custtype": "P",
             "hashkey": h
         }
         logger.debug(h)
-        logger.debug(cursession[DBManager.CANO], cursession[DBManager.ACNT], data['CANO'], data['ACNT_PRDT_CD'])
+        logger.debug(account.cano, account.acnt, data['CANO'], data['ACNT_PRDT_CD'])
         path = "/uapi/domestic-stock/v1/trading/order-cash"
         url = f"{Declaration.Base_URL}/{path}"
         res = requests.post(url, headers=headers, data=json.dumps(data)).json()
@@ -57,31 +58,31 @@ class TradeManager:
         logger.debug(res)
         return res
 
-    def sellMarketPrice(self, useruuid: str, code: str, quantity: int):  # 현금 주식 매도 주문
-        cursession = self.sessionDB.getSessionInfo(useruuid)
-        if cursession['code'] == 0:  # 현재 세션이 존재하지 않으면 0 리턴
-            return {'code': 0}
+    def sellMarketPrice(self, account: AccountManager.Account, code: str, quantity: int):  # 현금 주식 매도 주문
+        if account.state == 0:
+            return {'code' : 0 , 'msg' : 'account객체가 제대로 initiated 되지 않음'}
+        logger.debug(account.kakaoid)
         # httprequest 부분 시작
         data = {
-            "CANO": cursession[DBManager.CANO],
-            "ACNT_PRDT_CD": cursession[DBManager.ACNT],
+            "CANO": account.cano,
+            "ACNT_PRDT_CD": account.acnt,
             "PDNO": f"{code}",  # 종목코드
             "ORD_DVSN": "01",  # 시장가 코드
             "ORD_QTY": f"{quantity}",  # 수량
             "ORD_UNPR": "0",  # 가격은 시장가이므로 비워놔
         }
-        h = self.getHash(cursession[DBManager.APIKEY], cursession[DBManager.SECRET], data)
+        h = self.getHash(account.apikey, account.secret, data)
         headers = {
             "content-type": 'application/json',
-            "authorization": f"Bearer {cursession[DBManager.TOKEN]}",
-            "appKey": cursession[DBManager.APIKEY],
-            "appSecret": cursession[DBManager.SECRET],
+            "authorization": f"Bearer {account.token}",
+            "appKey": account.apikey,
+            "appSecret": account.secret,
             "tr_id": "VTTC0801U",
             "custtype": "P",
             "hashkey": h
         }
         logger.debug(h)
-        logger.debug(cursession[DBManager.CANO], cursession[DBManager.ACNT], data['CANO'], data['ACNT_PRDT_CD'])
+        logger.debug(account.cano, account.acnt, data['CANO'], data['ACNT_PRDT_CD'])
         path = "/uapi/domestic-stock/v1/trading/order-cash"
         url = f"{Declaration.Base_URL}/{path}"
         res = requests.post(url, headers=headers, data=json.dumps(data)).json()
@@ -89,20 +90,61 @@ class TradeManager:
         logger.debug(res)
         return res
 
+    def rebalance(self,account: AccountManager.Account):
+        #현재 포트폴리오에 이만큼 운용하세요 하고 설정해놓은 금액 값 -> self.quantity
+        logger.debug(account.quantity)
+        #현재 유가평가금액총액 -> self.eval
+        logger.debug(account.eval)
+        #현재 유가 비율 -> self.curaccount
+        logger.debug(account.curaccount)
+        #설정된 유가 비율 -> self.ratio
+        logger.debug(account.ratio)
+        #현재 설정해놓은 금액 self.quantity에 ratio를 곱해서 각 종목별로 얼마씩 투자해야되는지 확인 해야됨
+        targetaccount = { k:int(v*account.quantity) for k,v in account.ratio.items() }
+        del targetaccount['code']
+        tmpaccount = {a['pdno']:int(a['pchs_amt']) for a in account.curaccount}
+        logger.debug(tmpaccount)
+        logger.debug(targetaccount)
+        logger.debug(account.curpricedic)
+        #현재 잔고의 각 종목별 총액(현재가 x 주식수)를 구한다. ->self.curaccount의 pchs_amt를 사용
+        buyrequest = []
+        sellrequest = []
+        for k,v in targetaccount.items(): #targetaccount -> 목표로 하는 잔고정보 tmpaccount -> 현재 가지고 있는 잔고정보
+            diff = v-tmpaccount[k]
+            curprice = account.curpricedic[k] #이거 가격 불러오는 모듈 구현해야됨
+            if diff > 0:
+                logger.debug(k,'를',diff,'만큼 더 사야됨')
+                if diff//curprice != 0:
+                    buyrequest.append([k,int(diff//curprice)])
+            elif diff < 0:
+                logger.debug(k,'를',diff,'만큼 팔아야됨')
+                if diff//curprice != 0:
+                    sellrequest.append([k,int(diff//curprice)])
+        #이제 현재가격으로 나눈만큼 수량 주문하면됨
+        threadlist = []
+        for code,quantity in buyrequest:
+            t = threading.Thread(target = self.buyMarketPrice,args = (account, code,quantity))
+            threadlist.append(t)
+            t.start()
+        for code,quantity in sellrequest:
+            t = threading.Thread(target = self.sellMarketPrice, args = (account, code,quantity))
+            threadlist.append(t)
+            t.start()
+        for i in threadlist:
+            i.join()
+
+        return {'code' : 1}
 
 if __name__ == "__main__":
     Declaration.initiate()
-    container = DBManager.DBContainer()
-    container2 = DBManager.DBContainer()
-    sessiondb2 = container2.sessiondb_provider()
+    container = Container.MainContainer()
+    container2 = Container.MainContainer()
     serverdb: DBManager.ServerDBManager = container.serverdb_provider()
-    sessiondb: DBManager.SessionDBManager = container.sessiondb_provider()
-    tmpuuid = sessiondb.createSession('12181577','tokentoken',serverdb)[DBManager.UUID]
-    logger.debug(sessiondb.getSessionInfo(tmpuuid))
-    trader = TradeManager(container)
-    logger.debug(trader.sessionDB.getSessionInfo(tmpuuid))
-    logger.debug(trader.buyMarketPrice(tmpuuid,'005930',10))
-    logger.debug(trader.buyMarketPrice(tmpuuid, '003550', 10))
-    logger.debug(trader.buyMarketPrice(tmpuuid, '091170', 10))
-    logger.debug(sessiondb2.getSessionInfo(tmpuuid))
+    account: AccountManager.Account = AccountManager.Account('12181577',serverdb)
+    trader = TradeManager()
+    #logger.debug(trader.sessionDB.getSessionInfo('12181577'))
+    #logger.debug(trader.buyMarketPrice(account,'005930',10))
+    logger.debug(trader.sellMarketPrice(account, '003550', 10))
+    #logger.debug(trader.buyMarketPrice('12181577', '091170', 10))
+    #logger.debug(sessiondb2.getSessionInfo('12181577'))
     # logger.debug(sellMarketPrice('12181577','005930',1))

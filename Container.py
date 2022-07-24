@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 import DBManager
-import Trader
+
 import AccountManager
 import uuid
 import Declaration
@@ -19,7 +19,7 @@ class MainContainer(containers.DeclarativeContainer):
     serverdb_provider = providers.Singleton(DBManager.ServerDBManager)
     sessiondb_provider = providers.Singleton(DBManager.SessionDBManager)
     #trader 도메인 기능
-    trade_provider = providers.Factory(Trader.TradeManager,_sessiondb=sessiondb_provider,_serverdb=serverdb_provider)
+#    trade_provider = providers.Factory(Trader.TradeManager,_sessiondb=sessiondb_provider,_serverdb=serverdb_provider)
 router = APIRouter()
 @router.get('/test?param={par}')
 async def fortest(par: str):
@@ -43,8 +43,21 @@ async def setUserNickName(uuid: str, target: str):
     maincontainer = MainContainer()
     sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
     serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
-    sesdb.editSession(uuid,{DBManager.NICKNAME:target},serdb)
-    return {'code' : 1}
+    rescode = sesdb.editSession(uuid,{DBManager.NICKNAME:target},serdb)['code']
+    return {'code' : rescode}
+@router.get('/setUserRatio/{uuid}/{tostr}')
+async def setUserRatio(uuid: str, tostr: str):
+    global maincontainer
+    maincontainer = MainContainer()
+    sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
+    serdb: DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    try:
+        targetdict = dict(eval(tostr))
+    except:
+        return {'code' : 0, 'msg' : 'tostr 문자열이 올바르지 않습니다'}
+    rescode = sesdb.editSession(uuid,{DBManager.STKLST : tostr})
+    return {'code' : rescode}
+
 
 if __name__ == "__main__":#Unit test를 위한 공간
     Declaration.initiate()
