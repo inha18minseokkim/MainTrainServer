@@ -1,5 +1,9 @@
+import threading
+
 import pymongo as pymongo
 import pymongo_inmemory
+
+import AccountManager
 import Declaration
 import uuid
 import requests, json
@@ -28,6 +32,7 @@ TOKEN = 'token'
 CANO = 'cano'
 ACNT = 'acnt_prdt_cd'
 STKLST = 'stocklist'
+PERIOD = 'period'
 
 
 class ServerDBManager:
@@ -95,6 +100,21 @@ class ServerDBManager:
         res = {k: float(v) for k, v in dict(literal_eval(res[0][STKLST])).items()}
         res['code'] = 1
         logger.debug('kakaoid에 대한 주가 비율 정보를 요청함', res)
+        return res
+    def setScheduler(self, info: list[list[(str,int)]]): #Scheduler의 정보를 저장
+        tlist: list[threading.Thread] = []
+        for i in range(300):
+            logger.debug(i)
+            idquery = {'idx' : i}
+            values = {'$set' : {'value' : info[i]}}
+            t = threading.Thread(target = self.serverdb.scheduler.update_one, args = (idquery,values))
+            t.start()
+            tlist.append(t)
+        for t in tlist:
+            t.join()
+    def getScheduler(self): #Scheduler의 정보 가져옴
+        cursor = self.serverdb.scheduler.find()
+        res: list[list[(str, int)]] = list(cursor)
         return res
 
 class SessionDBManager:
