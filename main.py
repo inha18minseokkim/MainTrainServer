@@ -38,12 +38,12 @@ async def on_app_start() -> None:
     maincontainer = Container.MainContainer()
     sesdb = maincontainer.sessiondb_provider()
     serdb = maincontainer.serverdb_provider()
-    trader = maincontainer.trade_provider()
+    #trader = maincontainer.trade_provider()
     tmpuuid = sesdb.createSession('12181577','token',serdb)[DBManager.UUID]
     logger.debug(tmpuuid)
-    account = AccountManager.Account(tmpuuid,sesdb,serdb)
+    #account = AccountManager.Account(tmpuuid,sesdb,serdb)
     print("ASDasdf")
-    account.rebalance(trader)
+    #account.rebalance(trader)
 
 '''
 @app.middleware("http")

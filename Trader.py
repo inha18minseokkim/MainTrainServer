@@ -89,6 +89,44 @@ class TradeManager:
         res['code'] = 1
         logger.debug(res)
         return res
+    def isgoodbalance(self, account: AccountManager.Account): #리밸런싱 전 적절한 금액을 설정한 것인지 확인함
+        res = 1 # 1은 가능 0은 불가능
+        if account.state == 0:
+            return {'code' : 0, 'msg' : 'Account 객체가 유효하지 않습니다.'}
+        # 현재 포트폴리오에 이만큼 운용하세요 하고 설정해놓은 금액 값 -> self.quantity
+        logger.debug(account.quantity)
+        # 현재 유가평가금액총액 -> self.eval
+        logger.debug(account.eval)
+        # 현재 유가 비율 -> self.curaccount
+        logger.debug(account.curaccount)
+        # 설정된 유가 비율 -> self.ratio
+        logger.debug(account.ratio)
+        # 현재 설정해놓은 금액 self.quantity에 ratio를 곱해서 각 종목별로 얼마씩 투자해야되는지 확인 해야됨
+        targetaccount = {k: int(v * account.quantity) for k, v in account.ratio.items()}
+        del targetaccount['code']
+        tmpaccount = {a['pdno']: int(a['pchs_amt']) for a in account.curaccount}
+        logger.debug(tmpaccount)
+        logger.debug(targetaccount)
+        logger.debug(account.curpricedic)
+        # 현재 잔고의 각 종목별 총액(현재가 x 주식수)를 구한다. ->self.curaccount의 pchs_amt를 사용
+        buyrequest = []
+        sellrequest = []
+        for k, v in targetaccount.items():  # targetaccount -> 목표로 하는 잔고정보 tmpaccount -> 현재 가지고 있는 잔고정보
+            diff = v - tmpaccount[k]
+            curprice = account.curpricedic[k]  # 이거 가격 불러오는 모듈 구현해야됨
+            if curprice * 100 > account.quantity: return {'code': 1, 'value': 0}
+            if diff > 0:
+                logger.debug(k, '를', diff, '만큼 더 사야됨')
+                if diff // curprice == 0:
+                    buyrequest.append([k, int(diff // curprice)])
+            elif diff < 0:
+                logger.debug(k, '를', diff, '만큼 팔아야됨')
+                if diff // curprice == 0:
+                    sellrequest.append([k, int(diff // curprice)])
+        if len(buyrequest) != 0 or len(sellrequest) != 0 : return {'code' : 1, 'value': 0}
+
+        #모든 검사를 통과해야만 1, 안정적인 자산운용이 가능하다는 신호를 줄 수 있다.
+        return {'code': 1, 'value' : 1}
 
     def rebalance(self,account: AccountManager.Account):
         #현재 포트폴리오에 이만큼 운용하세요 하고 설정해놓은 금액 값 -> self.quantity

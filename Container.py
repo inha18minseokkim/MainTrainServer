@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 import DBManager
 
 import AccountManager
@@ -26,7 +26,7 @@ async def fortest(par: str):
     return par
 
 #유저 정보 관련 API
-@router.get('/getUserInfo/{uuid}')
+@router.get('/getUserInfo/{uuid}', tags=['사용자정보 관련'])
 async def getUserInfo(uuid: str):
     global maincontainer
     maincontainer = MainContainer()
@@ -37,7 +37,43 @@ async def getUserInfo(uuid: str):
     logger.debug(res,type(res))
     del res['_id']
     return res
-@router.get('/setUserNickName/{uuid}/{target}')
+
+@router.get(path = '/getUserAccount/{uuid}', name = '사용자 잔고정보 반환', tags=['사용자정보 관련'], description = 'uuid에 해당하는 고객의 잔고정보 리턴',
+            response_description='code - 1 : 유효한 response, 0 : 뭔가 문제가 있는 response<br>'
+                                 'state - 1 : 유효한 계정 정보, 0 : 서버에서 조회 실패<br>'
+                                 'kakaoid : 현재 유저의 kakaoid<br>'
+                                 'nickname : 현재 유저가 사용하고 있는 닉네임<br>'
+                                 'apikey : 유저가 입력한 한국투자 api key <br>'
+                                 'secret : 유저가 입력한 한국투자 secret<br>'
+                                 'quantity : 유저가 포트폴리오 운용을 위해 설정한 한도 금액 <br>'
+                                 'cano : 유저의 한국투자 계좌 앞 8자리 <br>'
+                                 'acnt : 유저의 한국투자 계좌 뒤 2자리 <br>'
+                                 'ratio : 유저가 처음에 포트폴리오 설정해놓은 금액<br>'
+                                 'total : 유저 잔고 총평가금액(예수금+유가평가금액 총합)<br>'
+                                 'deposit : 예수금총액<br>'
+                                 'eval : 유가평가금액, 매수한 주식의 총 평가액<br>'
+                                 'sumofprch : 주식을 매입한 당시 가격의 총합 <br>'
+                                 'sumofern : 평가손익합계금액<br>'
+                                 'assticdc : 자산증감액<br>'
+                                 'assticdrct : 자산증감수익률<br>'
+                                 'curaccount : 현재 가지고 있는 자산들의 정보 ')
+async def getUserAccount(uuid: str):
+    global maincontainer
+    maincontainer = MainContainer()
+    logger.debug(maincontainer)
+    logger.debug(uuid)
+    sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
+    serdb: DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    res = sesdb.getSessionInfo(uuid)
+    if res['code'] == 0:
+        return {'code' : 0, 'msg' : '세션이 유효하지 않거나 세션 정보와 맞는 계정이 없습니다'}
+    tmpkakaoid = res[DBManager.KAKAOID]
+    tmpaccount: AccountManager = AccountManager.Account(tmpkakaoid,serdb)
+    tmpres:dict = tmpaccount.getAccountInfoDictionary()
+    tmpres['code'] = 1
+    return tmpres
+
+@router.get('/setUserNickName/{uuid}/{target}', name = '사용자 닉네임 수정',tags=['사용자정보 관련'], description = 'uuid에 해당하는 사용자 닉네임 수정')
 async def setUserNickName(uuid: str, target: str):
     global maincontainer
     maincontainer = MainContainer()
@@ -45,7 +81,49 @@ async def setUserNickName(uuid: str, target: str):
     serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
     rescode = sesdb.editSession(uuid,{DBManager.NICKNAME:target},serdb)['code']
     return {'code' : rescode}
-@router.get('/setUserRatio/{uuid}/{tostr}')
+@router.get('/setUserApiKey/{uuid}/{target}', name = '사용자 apikey 수정', tags=['사용자정보 관련'])
+async def setUserApiKey(uuid: str, target: str):
+    global maincontainer
+    maincontainer = MainContainer()
+    sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
+    serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    rescode = sesdb.editSession(uuid, {DBManager.APIKEY: target}, serdb)['code']
+    return {'code': rescode}
+@router.get('/setUserSecret/{uuid}/{target}', name = '사용자 secret 수정',tags=['사용자정보 관련'])
+async def setUserSecret(uuid: str, target: str):
+    global maincontainer
+    maincontainer = MainContainer()
+    sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
+    serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    rescode = sesdb.editSession(uuid, {DBManager.SECRET: target}, serdb)['code']
+    return {'code': rescode}
+@router.get('/setUserQuantity/{uuid}/{target}',name = '사용자 운용금액 한도 수정', tags=['사용자정보 관련'])
+async def setUserQuantity(uuid: str, target: str):
+    global maincontainer
+    maincontainer = MainContainer()
+    sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
+    serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    rescode = sesdb.editSession(uuid, {DBManager.QUANTITY: target}, serdb)['code']
+    return {'code': rescode}
+@router.get('/setUserCANO/{uuid}/{target}',name = '사용자 CANO 수정', tags=['사용자정보 관련'])
+async def setUserCANO(uuid: str, target: str):
+    global maincontainer
+    maincontainer = MainContainer()
+    sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
+    serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    rescode = sesdb.editSession(uuid, {DBManager.CANO: target}, serdb)['code']
+    return {'code': rescode}
+@router.get('/setUserACNT/{uuid}/{target}',name = '사용자 ACNT 수정', tags=['사용자정보 관련'])
+async def setUserACNT(uuid: str, target: str):
+    global maincontainer
+    maincontainer = MainContainer()
+    sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
+    serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    rescode = sesdb.editSession(uuid, {DBManager.ACNT: target}, serdb)['code']
+    return {'code': rescode}
+@router.get('/setUserRatio/{uuid}/{tostr}',name = '사용자 설정 비율 수정', tags=['사용자정보 관련'],
+            description='유의하셔야 할 점 : 반드시 코드:비율 형태를 지켜주세요. tostr은 딕셔너리,json자료형을 문자열형태로 받습니다. 모든 비율의 합은 1이어야 합니다.<br>'
+                        'ex) { "005930" : "0.5", "003550" : "0.3", "091170" : "0.2" }')
 async def setUserRatio(uuid: str, tostr: str):
     global maincontainer
     maincontainer = MainContainer()
