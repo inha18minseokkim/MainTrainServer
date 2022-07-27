@@ -14,7 +14,7 @@ class MainContainer(containers.DeclarativeContainer):
         if not hasattr(cls, "_instance"):
             logger.debug("__new__ is called")
             cls._instance = super().__new__(cls)
-        return cls._instance
+        return cls._instance    
     #dbmanager
     serverdb_provider = providers.Singleton(DBManager.ServerDBManager)
     sessiondb_provider = providers.Singleton(DBManager.SessionDBManager)

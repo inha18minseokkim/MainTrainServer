@@ -11,3 +11,4 @@ loguru
 bs4
 dependency_injector
 pydantic
+exchange_calendars

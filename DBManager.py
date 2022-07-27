@@ -3,14 +3,11 @@ import threading
 import pymongo as pymongo
 import pymongo_inmemory
 
-import AccountManager
 import Declaration
 import uuid
 import requests, json
-import bson
-import pydantic
+
 from loguru import logger
-from dependency_injector import containers, providers
 from ast import literal_eval
 
 #sessiondb : 세션을 유지하기 위해 사용하는 inmemory DB
@@ -50,7 +47,7 @@ class ServerDBManager:
             return {'code':0}
         self.serverdb.user.insert_one(
             {KAKAOID: kakaoid, NICKNAME: nickname, APIKEY: apikey, SECRET: secret, QUANTITY: quantity
-                , CANO: cano, ACNT: acnt})
+                , CANO: cano, ACNT: acnt, PERIOD : 20})
         return {'code': 1}
 
     def createServerDummy(self):
@@ -116,6 +113,14 @@ class ServerDBManager:
         cursor = self.serverdb.scheduler.find()
         res: list[list[(str, int)]] = list(cursor)
         return res
+    def setSchedulerIdx(self, _idx):
+        idquery = {'idx' : 'idx'}
+        values = {'$set' : {'value' : _idx}}
+        self.serverdb.scheduleridx.update_one(idquery,values)
+        return
+    def getSchedulerIdx(self):
+        cursor = self.serverdb.scheduleridx.find({'idx' : 'idx'})
+        return list(cursor)[0]['value']
 
 class SessionDBManager:
     def __init__(self):
