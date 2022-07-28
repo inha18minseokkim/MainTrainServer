@@ -1,8 +1,12 @@
-from fastapi import FastAPI, Request
+import asyncio
+import threading
+
+from fastapi import FastAPI, Request, BackgroundTasks
 import json,requests,random,uuid,contextvars,time
 from fastapi.responses import JSONResponse
 from loguru import logger
 import DBManager
+import PeriodicTradingRoutine
 import Stock_Price
 import AccountManager
 import Declaration
@@ -39,11 +43,10 @@ async def on_app_start() -> None:
     sesdb = maincontainer.sessiondb_provider()
     serdb = maincontainer.serverdb_provider()
     #trader = maincontainer.trade_provider()
-    tmpuuid = sesdb.createSession('12181577','token',serdb)[DBManager.UUID]
+    tmpuuid = sesdb.createSession('12181577','token',serdb)[DBManager.UUID] #테스트용 더미세션.
     logger.debug(tmpuuid)
-    #account = AccountManager.Account(tmpuuid,sesdb,serdb)
-    print("ASDasdf")
-    #account.rebalance(trader)
+    scheduler: PeriodicTradingRoutine.TradeScheduler = maincontainer.scheduler_provider()
+    threading.Thread(target = PeriodicTradingRoutine.background, args = (scheduler,)).start()
 
 '''
 @app.middleware("http")

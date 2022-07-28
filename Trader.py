@@ -1,7 +1,6 @@
 import threading
 
 import AccountManager
-import Container
 import Declaration
 import DBManager
 import requests
@@ -174,15 +173,16 @@ class TradeManager:
         return {'code' : 1}
 
 if __name__ == "__main__":
-    Declaration.initiate()
-    container = Container.MainContainer()
-    container2 = Container.MainContainer()
-    serverdb: DBManager.ServerDBManager = container.serverdb_provider()
-    account: AccountManager.Account = AccountManager.Account('12181577',serverdb)
-    trader = TradeManager()
-    #logger.debug(trader.sessionDB.getSessionInfo('12181577'))
-    #logger.debug(trader.buyMarketPrice(account,'005930',10))
-    logger.debug(trader.sellMarketPrice(account, '003550', 10))
-    #logger.debug(trader.buyMarketPrice('12181577', '091170', 10))
-    #logger.debug(sessiondb2.getSessionInfo('12181577'))
-    # logger.debug(sellMarketPrice('12181577','005930',1))
+    pass
+    # Declaration.initiate()
+    # container = Container.MainContainer()
+    # container2 = Container.MainContainer()
+    # serverdb: DBManager.ServerDBManager = container.serverdb_provider()
+    # account: AccountManager.Account = AccountManager.Account('12181577',serverdb)
+    # trader = TradeManager()
+    # #logger.debug(trader.sessionDB.getSessionInfo('12181577'))
+    # #logger.debug(trader.buyMarketPrice(account,'005930',10))
+    # logger.debug(trader.sellMarketPrice(account, '003550', 10))
+    # #logger.debug(trader.buyMarketPrice('12181577', '091170', 10))
+    # #logger.debug(sessiondb2.getSessionInfo('12181577'))
+    # # logger.debug(sellMarketPrice('12181577','005930',1))

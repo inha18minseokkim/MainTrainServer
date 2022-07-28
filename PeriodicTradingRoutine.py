@@ -1,12 +1,12 @@
-from datetime import datetime
-
+from datetime import datetime, timedelta
+import time
 from loguru import logger
 
 import AccountManager
-import Container
 import DBManager
 import Trader
 import exchange_calendars as ecals
+
 
 class TradeScheduler:
     def __init__(self, _serverdb : DBManager.ServerDBManager):
@@ -30,6 +30,7 @@ class TradeScheduler:
         self.serverdb.setScheduler(saver)
         self.serverdb.setSchedulerIdx(self.idx)
     def dailyRoutine(self):#매일 해당 idx의 큐에 대해
+        logger.debug(f'{self.idx} 루틴 시작')
         if isBusinessDay() == False: #오늘이 영업일이 아니라면
             self.moveToNext() #오늘 셀안에 있는 element를 내일 셀로 옮김
             return {'code' : 1}
@@ -63,6 +64,16 @@ class TradeScheduler:
             curkakaoid , curlazyday = todaylist.pop(0)
             targetlist.append((curkakaoid,curlazyday+1))
         return {'code' : 1}
+def background(scheduler : TradeScheduler):
+    #main 루프 백그라운드에서 돌아갈 함수. 24시간마다 scheduler 큐의 각 인덱스 하나씩 순회하게 만드는 것이 목표.
+    while True:
+        curtime = datetime.now()
+        if curtime.hour == 12 and curtime.minute == 0:
+            scheduler.dailyRoutine() # 오늘 리밸런싱 해야되는 계정들 다 리밸런싱 돌려줌
+            curtime = datetime.now() # 현재 시간
+            nexttime = datetime(curtime.year,curtime.month,curtime.day,12,0,0,0) + timedelta(days=1) #내일 12시 시간
+            dt = nexttime - curtime
+            time.sleep(dt.seconds) #내일 12시 까지 남은 시간만큼 sleep
 
 def isBusinessDay(): #오늘이 영업일인지 아닌지 판단해줌
     XKRX = ecals.get_calendar("XKRX")
@@ -71,8 +82,9 @@ def isBusinessDay(): #오늘이 영업일인지 아닌지 판단해줌
     return XKRX.is_session(curdate)
 
 if __name__ == "__main__":
-    maincontainer: Container.MainContainer = Container.MainContainer()
-    serdb: DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    pass
+    #maincontainer: Container.MainContainer = Container.MainContainer()
+    #serdb: DBManager.ServerDBManager = maincontainer.serverdb_provider()
     # tmpscheduler: list[list[(str,int)]] = [[] for i in range(300)]
     # tmpscheduler[3].append(('12181577',3))
     # tmpscheduler[4].append(('2328479814',4))
@@ -82,7 +94,7 @@ if __name__ == "__main__":
     #serdb.setScheduler(tmpscheduler)
     #serdb.setSchedulerIdx(3)
 
-    scheduler: TradeScheduler = TradeScheduler(serdb)
-    scheduler.dailyRoutine()
-    logger.debug(scheduler.schedulerqueue)
-    logger.debug(scheduler.idx)
+    #scheduler: TradeScheduler = TradeScheduler(serdb)
+    #scheduler.dailyRoutine()
+    #logger.debug(scheduler.schedulerqueue)
+    #logger.debug(scheduler.idx)

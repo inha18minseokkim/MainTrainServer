@@ -6,6 +6,9 @@ import uuid
 import Declaration
 from loguru import logger
 from dependency_injector import containers, providers
+
+import PeriodicTradingRoutine
+
 maincontainer = None
 class MainContainer(containers.DeclarativeContainer):
     def __init__(self):
@@ -18,6 +21,7 @@ class MainContainer(containers.DeclarativeContainer):
     #dbmanager
     serverdb_provider = providers.Singleton(DBManager.ServerDBManager)
     sessiondb_provider = providers.Singleton(DBManager.SessionDBManager)
+    scheduler_provider = providers.Singleton(PeriodicTradingRoutine.TradeScheduler, _serverdb = serverdb_provider)
     #trader 도메인 기능
 #    trade_provider = providers.Factory(Trader.TradeManager,_sessiondb=sessiondb_provider,_serverdb=serverdb_provider)
 router = APIRouter()

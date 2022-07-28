@@ -3,7 +3,6 @@ import DBManager
 from loguru import logger
 import requests,json
 import threading
-import Container
 import uuid
 class Account:
     def __init__(self, kakaoid: str, _serverdb):
@@ -132,16 +131,18 @@ class Account:
             'assticdcrt': self.assticdcrt,
             'curaccount': self.curaccount,
             'token': self.token,
+            'period' : self.period
         }
 
 
 
 if __name__ == "__main__":
-    Declaration.initiate()
-    container = Container.MainContainer()
-    serverdb: DBManager.ServerDBManager = container.serverdb_provider()
-    sessiondb: DBManager.SessionDBManager = container.sessiondb_provider()
-    account: Account = Account('12181577',serverdb)
-    print(account.token,account.kakaoid)
-    print(account.getAccountInfoDictionary())
+    pass
+    # Declaration.initiate()
+    # container = Container.MainContainer()
+    # serverdb: DBManager.ServerDBManager = container.serverdb_provider()
+    # sessiondb: DBManager.SessionDBManager = container.sessiondb_provider()
+    # account: Account = Account('12181577',serverdb)
+    # print(account.token,account.kakaoid)
+    # print(account.getAccountInfoDictionary())
 

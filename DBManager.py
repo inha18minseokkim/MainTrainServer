@@ -101,7 +101,7 @@ class ServerDBManager:
     def setScheduler(self, info: list[list[(str,int)]]): #Scheduler의 정보를 저장
         tlist: list[threading.Thread] = []
         for i in range(300):
-            logger.debug(i)
+            #logger.debug(i)
             idquery = {'idx' : i}
             values = {'$set' : {'value' : info[i]}}
             t = threading.Thread(target = self.serverdb.scheduler.update_one, args = (idquery,values))
