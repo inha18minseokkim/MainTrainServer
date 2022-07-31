@@ -30,7 +30,7 @@ CANO = 'cano'
 ACNT = 'acnt_prdt_cd'
 STKLST = 'stocklist'
 PERIOD = 'period'
-
+FAVLST = 'favlist'
 
 class ServerDBManager:
     def __init__(self):
@@ -47,7 +47,7 @@ class ServerDBManager:
             return {'code':0}
         self.serverdb.user.insert_one(
             {KAKAOID: kakaoid, NICKNAME: nickname, APIKEY: apikey, SECRET: secret, QUANTITY: quantity
-                , CANO: cano, ACNT: acnt, PERIOD : 20})
+                , CANO: cano, ACNT: acnt, PERIOD : 20, FAVLST : ''})
         return {'code': 1}
 
     def createServerDummy(self):

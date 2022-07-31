@@ -22,6 +22,7 @@ class Account:
         self.cano = self.userinfo[DBManager.CANO]
         self.acnt = self.userinfo[DBManager.ACNT]
         self.period = self.userinfo[DBManager.PERIOD]
+        self.favlist = self.userinfo[DBManager.FAVLST]
         self.curpricedic: dict = {}
         #ratio는 내가 설정해놓은 비율
         self.ratio: dict = self.serverdb.getStockRatio(self.kakaoid)
@@ -131,7 +132,8 @@ class Account:
             'assticdcrt': self.assticdcrt,
             'curaccount': self.curaccount,
             'token': self.token,
-            'period' : self.period
+            'period' : self.period,
+            'favlist' : self.favlist
         }
 
 

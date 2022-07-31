@@ -60,7 +60,8 @@ async def getUserInfo(uuid: str):
                                  'sumofern : 평가손익합계금액<br>'
                                  'assticdc : 자산증감액<br>'
                                  'assticdrct : 자산증감수익률<br>'
-                                 'curaccount : 현재 가지고 있는 자산들의 정보 ')
+                                 'curaccount : 현재 가지고 있는 자산들의 정보<br>'
+                                 'favlist : 현재 유저가 저장해놓은 즐겨찾기 리스트, 콤마로 구분한다. ex) "005930,005930,091170,055550" ')
 async def getUserAccount(uuid: str):
     global maincontainer
     maincontainer = MainContainer()
@@ -137,9 +138,23 @@ async def setUserRatio(uuid: str, tostr: str):
         targetdict = dict(eval(tostr))
     except:
         return {'code' : 0, 'msg' : 'tostr 문자열이 올바르지 않습니다'}
-    rescode = sesdb.editSession(uuid,{DBManager.STKLST : tostr})
+    rescode = sesdb.editSession(uuid,{DBManager.STKLST : tostr} ,serdb)['code']
     return {'code' : rescode}
-
+@router.get('/setUserFavList/{uuid}/{tostr}', name ='사용자 즐거찾기 리스트 수정', tags=['사용자정보 관련'],
+            description='원본 데이터를 모두 지우는 작업이기 때문에 api를 호출 할 때 반드시 리스트를 넘겨주세요'
+                        ' ex) 005930,123354,3453453,34665243 에서 005930을 없애고 싶으면 123354,3453453,34665243 '
+                        '를 넘겨주셔야 합니다')
+async def setUserFavList(uuid: str, tostr: str):
+    global maincontainer
+    maincontainer = MainContainer()
+    sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
+    serdb: DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    try:
+        targetdict = tostr.split(',')
+    except:
+        return {'code': 0, 'msg': 'tostr 문자열이 올바르지 않습니다'}
+    rescode = sesdb.editSession(uuid, {DBManager.FAVLST: tostr}, serdb)['code']
+    return {'code': rescode}
 
 if __name__ == "__main__":#Unit test를 위한 공간
     Declaration.initiate()
