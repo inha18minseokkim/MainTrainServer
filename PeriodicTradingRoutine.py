@@ -17,7 +17,7 @@ class TradeScheduler:
         self.loadfromServerDB()
     def loadfromServerDB(self): #서버가 꺼졌다가 켜지면 db에서 그 전까지 내용 다 받아옴
         tmpstr = self.serverdb.getScheduler()
-        logger.debug(tmpstr)
+        #logger.debug(tmpstr)
         for i in range(300):
 #            logger.debug(tmpstr['value'])
             self.schedulerqueue[i] = list(tmpstr[i]['value'])

@@ -189,12 +189,14 @@ class SessionDBManager:
         ############################절대로 단독으로 실행하지 마세요###############################
         ############################서버DB에서 업데이트 후 자동으로 실행됨#########################
         ####################유저 정보를 수정하고싶으면 editUserInfo를 실행해 주세요#################
+        logger.debug(f'{userUUID} 정보를 수정하려 함')
         tmp = self.getSessionInfo(userUUID)
-        kakaoid = tmp[KAKAOID]
         if tmp['code'] == 0:
             logger.debug('editUserInfo : 해당 유저 찾을 수 없음', userUUID)
             return {'code': 0}
+        kakaoid = tmp[KAKAOID]
         idquery = {UUID: userUUID}
+        logger.debug(f'{userUUID} 유효함 {kakaoid} 받아옴')
         values = {"$set": dic}
         self.sessiondb.user.update_one(idquery, values)
         servermanager.editUserInfo(kakaoid,dic)
