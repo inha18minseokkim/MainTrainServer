@@ -98,10 +98,10 @@ async def kakaoAuth(request: Request):
         serverdb.createAccount(id, name, apikey=Declaration.appKey, secret=Declaration.secret, cano='50067576', acnt='01', quantity=1000000)
 
     # 세션에 user 추가 로직 구현
-    # uid = sessiondb.createSession(id, 'dummy', serverdb)['uuid']
+    uid = sessiondb.createSession(id, 'dummy', serverdb)['uuid']
 
     # return {'uuid' : uid, 'registration' : user['code']^1 }
-    return {'uuid' : uuid.uuid4(), 'registration': 1, 'name': name}
+    return {'uuid' : uid, 'registration': 1, 'name': name}
 
 '''
 @router.get('/logout')

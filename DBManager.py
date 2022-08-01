@@ -94,10 +94,21 @@ class ServerDBManager:
         res = list(cursor)
         if len(res) == 0:  # 정보가 없으면 0을 리턴
             return {'code': 0}
+        try:
+            tmp = res[0][STKLST]
+        except:
+            logger.debug('아직 비율이 설정되지 않음. 빈 리스트를 만듦')
+            idquery = {KAKAOID : kakaoid}
+            values = {"$set" : {STKLST : ''}}
+            self.serverdb.user.update_one(idquery,values)
+            return {}
         res = {k: float(v) for k, v in dict(literal_eval(res[0][STKLST])).items()}
         res['code'] = 1
         logger.debug('kakaoid에 대한 주가 비율 정보를 요청함', res)
         return res
+
+
+    #User Collection이 아닌 scheduler collection
     def setScheduler(self, info: list[list[(str,int)]]): #Scheduler의 정보를 저장
         tlist: list[threading.Thread] = []
         for i in range(300):
@@ -137,10 +148,10 @@ class SessionDBManager:
                                    QUANTITY: 1000000})
     def createSession(self, kakaoid: str, kakaotoken: str, serverdb: ServerDBManager):  # 서버에 있는 정보를 갖고 와서 세션을 만듬
         cursor = serverdb.getUserInfoFromServer(kakaoid)
-        logger.debug(kakaoid,'에 대한 세션 생성')
+        logger.debug(f'{kakaoid}에 대한 세션 생성')
         res = cursor
         if res['code'] == 0:  # 정보가 없으면 0을 리턴
-            logger.debug("createSession: ",kakaoid,"에 대한 정보가 서버에 없음. 회원가입 먼저")
+            logger.debug(f"createSession: {kakaoid}에 대한 정보가 서버에 없음. 회원가입 먼저")
             return {'code': 0}
         res[UUID] = uuid.uuid4().hex
 
