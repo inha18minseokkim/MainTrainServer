@@ -71,7 +71,8 @@ async def getUserAccount(uuid: str):
     serdb: DBManager.ServerDBManager = maincontainer.serverdb_provider()
     res = sesdb.getSessionInfo(uuid)
     if res['code'] == 0:
-        return {'code' : 0, 'msg' : '세션이 유효하지 않거나 세션 정보와 맞는 계정이 없습니다'}
+        logger.debug(f'{uuid} : 세션이 유효하지 않거나 세션 정보와 맞는 계정이 없습니다')
+        return {'code' : 0, 'msg' : f'{uuid} : 세션이 유효하지 않거나 세션 정보와 맞는 계정이 없습니다'}
     tmpkakaoid = res[DBManager.KAKAOID]
     tmpaccount: AccountManager = AccountManager.Account(tmpkakaoid,serdb)
     tmpres:dict = tmpaccount.getAccountInfoDictionary()
@@ -85,7 +86,9 @@ async def setUserNickName(uuid: str, target: str):
     sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
     serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
     rescode = sesdb.editSession(uuid,{DBManager.NICKNAME:target},serdb)['code']
-    return {'code' : rescode}
+    resp = {'code' : rescode}
+    if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
+    return resp
 @router.get('/setUserApiKey/{uuid}/{target}', name = '사용자 apikey 수정', tags=['사용자정보 관련'])
 async def setUserApiKey(uuid: str, target: str):
     global maincontainer
@@ -93,7 +96,9 @@ async def setUserApiKey(uuid: str, target: str):
     sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
     serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
     rescode = sesdb.editSession(uuid, {DBManager.APIKEY: target}, serdb)['code']
-    return {'code': rescode}
+    resp = {'code': rescode}
+    if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
+    return resp
 @router.get('/setUserSecret/{uuid}/{target}', name = '사용자 secret 수정',tags=['사용자정보 관련'])
 async def setUserSecret(uuid: str, target: str):
     global maincontainer
@@ -101,7 +106,9 @@ async def setUserSecret(uuid: str, target: str):
     sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
     serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
     rescode = sesdb.editSession(uuid, {DBManager.SECRET: target}, serdb)['code']
-    return {'code': rescode}
+    resp = {'code': rescode}
+    if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
+    return resp
 @router.get('/setUserQuantity/{uuid}/{target}',name = '사용자 운용금액 한도 수정', tags=['사용자정보 관련'])
 async def setUserQuantity(uuid: str, target: str):
     global maincontainer
@@ -109,7 +116,9 @@ async def setUserQuantity(uuid: str, target: str):
     sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
     serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
     rescode = sesdb.editSession(uuid, {DBManager.QUANTITY: target}, serdb)['code']
-    return {'code': rescode}
+    resp = {'code': rescode}
+    if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
+    return resp
 @router.get('/setUserCANO/{uuid}/{target}',name = '사용자 CANO 수정', tags=['사용자정보 관련'])
 async def setUserCANO(uuid: str, target: str):
     global maincontainer
@@ -117,7 +126,9 @@ async def setUserCANO(uuid: str, target: str):
     sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
     serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
     rescode = sesdb.editSession(uuid, {DBManager.CANO: target}, serdb)['code']
-    return {'code': rescode}
+    resp = {'code': rescode}
+    if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
+    return resp
 @router.get('/setUserACNT/{uuid}/{target}',name = '사용자 ACNT 수정', tags=['사용자정보 관련'])
 async def setUserACNT(uuid: str, target: str):
     global maincontainer
@@ -125,7 +136,9 @@ async def setUserACNT(uuid: str, target: str):
     sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
     serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
     rescode = sesdb.editSession(uuid, {DBManager.ACNT: target}, serdb)['code']
-    return {'code': rescode}
+    resp = {'code': rescode}
+    if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
+    return resp
 @router.get('/setUserRatio/{uuid}/{tostr}',name = '사용자 설정 비율 수정', tags=['사용자정보 관련'],
             description='유의하셔야 할 점 : 반드시 코드:비율 형태를 지켜주세요. tostr은 딕셔너리,json자료형을 문자열형태로 받습니다. 모든 비율의 합은 1이어야 합니다.<br>'
                         'ex) { "005930" : "0.5", "003550" : "0.3", "091170" : "0.2" }')
@@ -139,7 +152,9 @@ async def setUserRatio(uuid: str, tostr: str):
     except:
         return {'code' : 0, 'msg' : 'tostr 문자열이 올바르지 않습니다'}
     rescode = sesdb.editSession(uuid,{DBManager.STKLST : tostr} ,serdb)['code']
-    return {'code' : rescode}
+    resp = {'code': rescode}
+    if rescode == 0: resp['msg'] = f'{uuid} {tostr} 수정 실패'
+    return resp
 @router.get('/setUserFavList/{uuid}/{tostr}', name ='사용자 즐거찾기 리스트 수정', tags=['사용자정보 관련'],
             description='원본 데이터를 모두 지우는 작업이기 때문에 api를 호출 할 때 반드시 리스트를 넘겨주세요'
                         ' ex) 삼성전자,LG,삼성전자우,KODEX%20은행 에서 삼성전자를 없애고싶으면 LG,삼성전자우,KODEX%20은행'
@@ -154,7 +169,9 @@ async def setUserFavList(uuid: str, tostr: str):
     except:
         return {'code': 0, 'msg': 'tostr 문자열이 올바르지 않습니다'}
     rescode = sesdb.editSession(uuid, {DBManager.FAVLST: tostr}, serdb)['code']
-    return {'code': rescode}
+    resp = {'code': rescode}
+    if rescode == 0: resp['msg'] = f'{uuid} {tostr} 수정 실패'
+    return resp
 
 if __name__ == "__main__":#Unit test를 위한 공간
     Declaration.initiate()

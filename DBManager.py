@@ -43,8 +43,8 @@ class ServerDBManager:
 
     def createAccount(self, kakaoid: str, nickname: str, apikey: str, secret: str, cano: str, acnt: str, quantity=0):
         if self.getUserInfoFromServer(kakaoid)['code'] == 1:#서버에 해당 유저가 있으면 계정 생성 못함
-            logger.debug("createAccount",kakaoid,"계정 정보가 이미 있으므로 계정생성 못함")
-            return {'code':0}
+            logger.debug(f"createAccount {kakaoid} 계정 정보가 이미 있으므로 계정생성 못함")
+            return {'code':0, 'msg' : f'{kakaoid} 계정 정보가 이미 있으므로 계정생성 못함'}
         self.serverdb.user.insert_one(
             {KAKAOID: kakaoid, NICKNAME: nickname, APIKEY: apikey, SECRET: secret, QUANTITY: quantity
                 , CANO: cano, ACNT: acnt, PERIOD : 20, FAVLST : ''})
@@ -62,7 +62,8 @@ class ServerDBManager:
         cursor = self.serverdb.user.find({KAKAOID: kakaoid})
         res = list(cursor)
         if len(res) == 0:  # 정보가 없으면 0을 리턴
-            return {'code': 0}
+            logger.debug(f'{kakaoid} 에 해당하는 정보가 없음')
+            return {'code': 0 ,'msg' :  f'{kakaoid} 에 해당하는 정보가 없음'}
         res = res[0]
         res['code'] = 1
         return res
@@ -74,7 +75,7 @@ class ServerDBManager:
         res = tmp['code']
         if res == 0:
             logger.debug('editUserInfo : 해당 유저 찾을 수 없음', kakaoid)
-            return {'code': 0}
+            return {'code': 0 , 'msg' : f'{kakaoid} 해당 유저를 찾을 수 없음'}
         idquery = {KAKAOID: kakaoid}
         values = {"$set": dic}
         self.serverdb.user.update_one(idquery, values)
@@ -83,8 +84,8 @@ class ServerDBManager:
     def delUserInfo(self,kakaoid: str):
         # 회원탈퇴시 회원정보 삭제
         if self.getUserInfoFromServer(kakaoid)['code'] == 0:
-            logger.debug('delUserInfo : 해당 유저 찾을 수 없음', kakaoid)
-            return {'code': 0}
+            logger.debug(f'delUserInfo : {kakaoid} 해당 유저 찾을 수 없음', kakaoid)
+            return {'code': 0 , 'msg' : f'{kakaoid} 해당 유저를 찾을 수 없음'}
         idquery = {KAKAOID: kakaoid}
         self.serverdb.user.delete_one(idquery)
         return {'code': 1}
@@ -132,6 +133,9 @@ class ServerDBManager:
     def getSchedulerIdx(self):
         cursor = self.serverdb.scheduleridx.find({'idx' : 'idx'})
         return list(cursor)[0]['value']
+    def getModelInfo(self):
+        cursor: list[(str,float,float,str)] = list(self.serverdb.modelinfo.find())
+        return cursor
 
 class SessionDBManager:
     def __init__(self):
