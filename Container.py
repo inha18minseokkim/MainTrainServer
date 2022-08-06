@@ -172,6 +172,19 @@ async def setUserFavList(uuid: str, tostr: str):
     resp = {'code': rescode}
     if rescode == 0: resp['msg'] = f'{uuid} {tostr} 수정 실패'
     return resp
+#유저 정보 관련 API
+@router.get('/getModelInfo', tags=['모델 정보 관련'])
+async def getUserInfo():
+    global maincontainer
+    maincontainer = MainContainer()
+    logger.debug(maincontainer)
+    logger.debug(uuid)
+    serdb: DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    res = serdb.getModelInfo()
+    logger.debug(res,type(res))
+    del res['_id']
+    return res
+
 
 if __name__ == "__main__":#Unit test를 위한 공간
     Declaration.initiate()
