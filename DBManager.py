@@ -158,6 +158,7 @@ class SessionDBManager:
             logger.debug(f"createSession: {kakaoid}에 대한 정보가 서버에 없음. 회원가입 먼저")
             return {'code': 0}
         res[UUID] = uuid.uuid4().hex
+        del res['_id']
 
         headers = {"content-type": "application/json"}
         body = {"grant_type": "client_credentials",
@@ -173,6 +174,7 @@ class SessionDBManager:
         res[LOGINTOKEN] = kakaotoken
         self.sessiondb.user.insert_one(res)
         logger.debug("세션생성 완료",res)
+        logger.debug(res)
         return {'code': 1, UUID : res[UUID]}
 
     def isSessionAvailable(self,userUUID: uuid.UUID):  # api를 호출 하기 전 해당 세션이 있는지
