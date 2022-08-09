@@ -178,7 +178,7 @@ class SessionDBManager:
         #이미 세션이 있는 경우(다른 기기에서 로그인중인데 또 기기에서 로그인 -> 일단 단일세션으로 생각하자
         test = list(self.sessiondb.user.find({KAKAOID:kakaoid}))
         if len(test) != 0:
-            return test[0][UUID]
+            return { 'code': 1 , UUID: test[0][UUID]}
         
         res[LOGINTOKEN] = kakaotoken
         self.sessiondb.user.insert_one(res)

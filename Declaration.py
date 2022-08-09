@@ -27,7 +27,7 @@ def initiate():
     logger.debug(f"{url}로 보안인증 키 요청")
     res = requests.post(url, headers=headers, data=json.dumps(body)).json()
     token = res['access_token']
-    logger.debug(f"token 생성 완료, 현재 계정 정보 {appKey} {secret} {token}")
+    logger.debug(f"token 생성 완료, 현재 계정 정보 {appKey} \n{secret} \n {token}")
 
 
 def getHashTest(data): #api post 요청 시 사용 할 hash 함수 Test용
