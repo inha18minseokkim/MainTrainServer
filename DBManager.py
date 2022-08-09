@@ -46,7 +46,7 @@ class ServerDBManager:
             logger.debug(f"createAccount {kakaoid} 계정 정보가 이미 있으므로 계정생성 못함")
             return {'code':0, 'msg' : f'{kakaoid} 계정 정보가 이미 있으므로 계정생성 못함'}
         self.serverdb.user.insert_one(
-            {KAKAOID: kakaoid, NICKNAME: nickname, APIKEY: apikey, SECRET: secret, QUANTITY: quantity
+            {KAKAOID: str(kakaoid), NICKNAME: nickname, APIKEY: apikey, SECRET: secret, QUANTITY: quantity
                 , CANO: cano, ACNT: acnt, PERIOD : 20, FAVLST : ''})
         return {'code': 1}
 
@@ -91,6 +91,7 @@ class ServerDBManager:
         return {'code': 1}
 
     def getStockRatio(self, kakaoid: str):  # kakaoid유저가 설정해놓은 주가 비율을 가져옴
+        logger.debug(f'카카오아이디로 비율 가져옴 {kakaoid},{type(kakaoid)}')
         cursor = self.serverdb.user.find({KAKAOID: kakaoid})
         res = list(cursor)
         if len(res) == 0:  # 정보가 없으면 0을 리턴
@@ -103,6 +104,9 @@ class ServerDBManager:
             values = {"$set" : {STKLST : ''}}
             self.serverdb.user.update_one(idquery,values)
             return {}
+        logger.debug(res[0][STKLST])
+        if res[0][STKLST] == '':
+            return {'code' : 0, 'msg' : '포트폴리오 정보가 없음'}
         res = {k: float(v) for k, v in dict(literal_eval(res[0][STKLST])).items()}
         res['code'] = 1
         logger.debug('kakaoid에 대한 주가 비율 정보를 요청함', res)
@@ -165,11 +169,16 @@ class SessionDBManager:
                 "appsecret": res[SECRET]}
         path = "oauth2/tokenP"
         url = f"{Declaration.Base_URL}/{path}"
-        logger.debug(f"{url}로 보안인증 키 요청")
+        logger.debug(f"{url}로 보안인증  키 요청")
         tokenres = requests.post(url, headers=headers, data=json.dumps(body)).json()
         res[TOKEN] = tokenres['access_token']
         logger.debug(f"token 생성 완료, 현재 계정 정보 {res[APIKEY]} {res[SECRET]} {kakaotoken} {res[TOKEN]} {res[UUID]}")
-
+        
+        #이미 세션이 있는 경우(다른 기기에서 로그인중인데 또 기기에서 로그인 -> 일단 단일세션으로 생각하자
+        test = list(self.sessiondb.user.find({KAKAOID:kakaoid}))
+        if len(test) != 0:
+            return test[0][UUID]
+        
         res[LOGINTOKEN] = kakaotoken
         self.sessiondb.user.insert_one(res)
         logger.debug("세션생성 완료",res)

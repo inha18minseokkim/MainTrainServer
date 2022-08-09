@@ -84,7 +84,7 @@ async def setUserNickName(uuid: str, target: str):
     global maincontainer
     maincontainer = MainContainer()
     sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
-    serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    serdb : DBManager.ServerDBManager = maincontainer.serverdb_provider()
     rescode = sesdb.editSession(uuid,{DBManager.NICKNAME:target},serdb)['code']
     resp = {'code' : rescode}
     if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
@@ -94,7 +94,7 @@ async def setUserApiKey(uuid: str, target: str):
     global maincontainer
     maincontainer = MainContainer()
     sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
-    serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    serdb : DBManager.ServerDBManager = maincontainer.serverdb_provider()
     rescode = sesdb.editSession(uuid, {DBManager.APIKEY: target}, serdb)['code']
     resp = {'code': rescode}
     if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
@@ -104,7 +104,7 @@ async def setUserSecret(uuid: str, target: str):
     global maincontainer
     maincontainer = MainContainer()
     sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
-    serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    serdb : DBManager.ServerDBManager = maincontainer.serverdb_provider()
     rescode = sesdb.editSession(uuid, {DBManager.SECRET: target}, serdb)['code']
     resp = {'code': rescode}
     if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
@@ -114,7 +114,7 @@ async def setUserQuantity(uuid: str, target: str):
     global maincontainer
     maincontainer = MainContainer()
     sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
-    serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    serdb : DBManager.ServerDBManager = maincontainer.serverdb_provider()
     rescode = sesdb.editSession(uuid, {DBManager.QUANTITY: target}, serdb)['code']
     resp = {'code': rescode}
     if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
@@ -124,7 +124,7 @@ async def setUserCANO(uuid: str, target: str):
     global maincontainer
     maincontainer = MainContainer()
     sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
-    serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    serdb : DBManager.ServerDBManager = maincontainer.serverdb_provider()
     rescode = sesdb.editSession(uuid, {DBManager.CANO: target}, serdb)['code']
     resp = {'code': rescode}
     if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
@@ -134,7 +134,7 @@ async def setUserACNT(uuid: str, target: str):
     global maincontainer
     maincontainer = MainContainer()
     sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
-    serdb = DBManager.ServerDBManager = maincontainer.serverdb_provider()
+    serdb : DBManager.ServerDBManager = maincontainer.serverdb_provider()
     rescode = sesdb.editSession(uuid, {DBManager.ACNT: target}, serdb)['code']
     resp = {'code': rescode}
     if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
@@ -181,8 +181,9 @@ async def getUserInfo():
     logger.debug(uuid)
     serdb: DBManager.ServerDBManager = maincontainer.serverdb_provider()
     res = serdb.getModelInfo()
-    logger.debug(res,type(res))
-    del res['_id']
+    logger.debug(f'{res},{type(res)}')
+    for i in res:
+        del i['_id']
     return res
 
 

@@ -82,7 +82,7 @@ async def kakaoAuth(request: Request):
     kakao_account = user["kakao_account"]
     profile = kakao_account["profile"]
     name = profile["nickname"]
-    id = user['id']
+    id = str(user['id'])
     if "email" in kakao_account.keys():
         email = kakao_account["email"]
     else:
@@ -96,7 +96,7 @@ async def kakaoAuth(request: Request):
     if user['code'] == 0: # 만약 회원가입이 안 된 유저라면
         # db 에 user 추가
         serverdb.createAccount(id, name, apikey=Declaration.appKey, secret=Declaration.secret, cano='50067576', acnt='01', quantity=1000000)
-
+    logger.debug(f'{id} 세션 만들기 시작')
     # 세션에 user 추가 로직 구현
     uid = sessiondb.createSession(id, 'dummy', serverdb)['uuid']
 
