@@ -1,5 +1,6 @@
+import datetime
 import threading
-
+import jwt
 import pymongo as pymongo
 import pymongo_inmemory
 
@@ -141,9 +142,20 @@ class ServerDBManager:
         cursor: list[(str,float,float,str)] = list(self.serverdb.modelinfo.find())
         return cursor
 
+class JWTManager:
+    def __init__(self, code: str):
+        decoded = jwt.decode(code, options={"verify_signature" : False})['exp']
+        self.expdate = datetime.datetime.fromtimestamp(decoded)
+    def isBeUpdated(self):
+        curdate = datetime.datetime.now()
+        d: datetime.timedelta = self.expdate - curdate
+        return d < datetime.timedelta(hours=1)
+
 class SessionDBManager:
     def __init__(self):
+        logger.debug('세션dB 초기화')
         self.client = pymongo_inmemory.MongoClient()
+        logger.debug('세션dB 초기화 완료')
         self.sessiondb = self.client.sessionDB
         logger.debug("sessiondb 초기화 완료", self.sessiondb)
 
@@ -154,6 +166,39 @@ class SessionDBManager:
                                    TOKEN: Declaration.token, LOGINTOKEN: 'TMP',
                                    CANO: '50067576', ACNT: '01',
                                    QUANTITY: 1000000})
+
+    def getTokenFromServer(self, kakaoid: str, apikey: str, secret: str): #함부로 실행하지 말것
+        headers = {"content-type": "application/json"}
+        body = {"grant_type": "client_credentials",
+                "appkey": apikey,
+                "appsecret": secret}
+        path = "oauth2/tokenP"
+        url = f"{Declaration.Base_URL}/{path}"
+        logger.debug(f"{url}로 보안인증  키 요청")
+        tokenres = requests.post(url, headers=headers, data=json.dumps(body)).json()
+        res = tokenres['access_token']
+        logger.debug(f"token 생성 완료, 현재 계정 정보 {res}")
+        return res
+    def validateToken(self, userUUID: uuid.UUID): #한국투자로 리퀘스트 전 토큰 검증 하고 수명이 1시간 이내면 토큰 갱신, 1시간 넘게 남았으면 아무것도 안함
+        cursor = self.sessiondb.user.find({UUID: userUUID})
+        res = list(cursor)
+        if len(res) == 0:
+            logger.debug('uuid에 해당하는 세션 찾기 실패')
+            return {'code' : 0, 'msg': 'uuid에 해당하는 세션 찾기 실패'}
+        res = res[0]
+        curtoken: JWTManager = JWTManager(res[TOKEN]) #token 정보 가져와서 JWTManager클래스로 변환
+        curkakaoid = res[KAKAOID]
+        curapikey = res[APIKEY]
+        cursecret = res[SECRET]
+        if curtoken.isBeUpdated(): #잔여시간이 한 시간도 안남았으면 업뎃 아니면 그냥 끝
+            newtoken = self.getTokenFromServer(curkakaoid,curapikey,cursecret)
+            self.editSession(userUUID,{TOKEN: newtoken},None,False)
+            logger.debug('세션 갱신함')
+            return {'code': 1, 'msg': '세션 갱신함'}
+        else:
+            logger.debug('아직 시간 많이 남음')
+            return {'code' : 1, 'msg':'아직 시간 많이 남음'}
+
     def createSession(self, kakaoid: str, kakaotoken: str, serverdb: ServerDBManager):  # 서버에 있는 정보를 갖고 와서 세션을 만듬
         cursor = serverdb.getUserInfoFromServer(kakaoid)
         logger.debug(f'{kakaoid}에 대한 세션 생성')
@@ -164,17 +209,18 @@ class SessionDBManager:
         res[UUID] = uuid.uuid4().hex
         del res['_id']
 
-        headers = {"content-type": "application/json"}
-        body = {"grant_type": "client_credentials",
-                "appkey": res[APIKEY],
-                "appsecret": res[SECRET]}
-        path = "oauth2/tokenP"
-        url = f"{Declaration.Base_URL}/{path}"
-        logger.debug(f"{url}로 보안인증  키 요청")
-        tokenres = requests.post(url, headers=headers, data=json.dumps(body)).json()
-        res[TOKEN] = tokenres['access_token']
-        logger.debug(f"token 생성 완료, 현재 계정 정보 {res[APIKEY]} {res[SECRET]} {kakaotoken} {res[TOKEN]} {res[UUID]}")
-        
+        # headers = {"content-type": "application/json"}
+        # body = {"grant_type": "client_credentials",
+        #         "appkey": res[APIKEY],
+        #         "appsecret": res[SECRET]}
+        # path = "oauth2/tokenP"
+        # url = f"{Declaration.Base_URL}/{path}"
+        # logger.debug(f"{url}로 보안인증  키 요청")
+        # tokenres = requests.post(url, headers=headers, data=json.dumps(body)).json()
+        # res[TOKEN] = tokenres['access_token']
+        # logger.debug(f"token 생성 완료, 현재 계정 정보 {res[APIKEY]} {res[SECRET]} {kakaotoken} {res[TOKEN]} {res[UUID]}")
+        res[TOKEN] = self.getTokenFromServer(kakaoid, res[APIKEY],res[SECRET])
+
         #이미 세션이 있는 경우(다른 기기에서 로그인중인데 또 기기에서 로그인 -> 일단 단일세션으로 생각하자
         test = list(self.sessiondb.user.find({KAKAOID:kakaoid}))
         if len(test) != 0:
@@ -210,7 +256,7 @@ class SessionDBManager:
             return {'code': 0}
         res = res[0]
         return {'code': 1, 'res' : res[KAKAOID]}
-    def editSession(self, userUUID: uuid.UUID, dic: dict, servermanager: ServerDBManager):
+    def editSession(self, userUUID: uuid.UUID, dic: dict, servermanager: ServerDBManager, reflectserver = True):
         # dict = { NICKNAME : '바꿀 닉네임' } 으로 전달하면 해당 요소를 바꿈
         ############################절대로 단독으로 실행하지 마세요###############################
         ############################서버DB에서 업데이트 후 자동으로 실행됨#########################
@@ -225,7 +271,8 @@ class SessionDBManager:
         logger.debug(f'{userUUID} 유효함 {kakaoid} 받아옴')
         values = {"$set": dic}
         self.sessiondb.user.update_one(idquery, values)
-        servermanager.editUserInfo(kakaoid,dic)
+        if reflectserver: #reflectserver 가 True면 서버에 자동으로 반영됨
+            servermanager.editUserInfo(kakaoid,dic)
         logger.debug("editSession: 수정 완료")
         return {'code': 1}
 
