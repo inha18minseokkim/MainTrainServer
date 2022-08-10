@@ -60,7 +60,7 @@ async def request_middleware(request: Request, call_next):
     port = request['client'][1]
     client = f"{ip}:{port}"
 
-    logger.debug(f"[{request_id}] Request Started")
+    # logger.debug(f"[{request_id}] Request Started")
 
     sesdb = maincontainer.sessiondb_provider()
     body = await request.json()
@@ -71,7 +71,7 @@ async def request_middleware(request: Request, call_next):
     return await call_next(request)
     process_time = time.time() - start_time
 
-    logger.debug(f"[{request_id}] Request Ended {process_time} Seconds")
+    # logger.debug(f"[{request_id}] Request Ended {process_time} Seconds")
 
     '''
     try:
