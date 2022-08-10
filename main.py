@@ -60,19 +60,16 @@ async def request_middleware(request: Request, call_next):
     port = request['client'][1]
     client = f"{ip}:{port}"
 
+    sesdb = maincontainer.sessiondb_provider()
     # logger.debug(f"[{request_id}] Request Started")
 
-    sesdb = maincontainer.sessiondb_provider()
-    body = await request.json()
-    if 'uuid' in body:
-        if sesdb.validateToken(body['uuid'])['code'] == 0:
+    if 'uuid' in request.headers.keys():
+        uid = request.headers.get('uuid')
+        if sesdb.validateToken(uid)['code'] == 0:
             return JSONResponse(content={"Error": "UUID is not found"}, status_code=401)
-        
+
     return await call_next(request)
-    process_time = time.time() - start_time
-
-    # logger.debug(f"[{request_id}] Request Ended {process_time} Seconds")
-
+    
     '''
     try:
         return await call_next(request)

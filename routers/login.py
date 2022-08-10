@@ -100,20 +100,8 @@ async def kakaoAuth(request: Request):
     # 세션에 user 추가 로직 구현
     uid = sessiondb.createSession(id, 'dummy', serverdb)['uuid']
 
-    # return {'uuid' : uid, 'registration' : user['code']^1 }
+    # return {'uuid' : uid, 'registration' : user['code']^1, 'name': name}
     return {'uuid' : uid, 'registration': 1, 'name': name}
-
-'''
-@router.get('/logout')
-def kakaoLogout(request: Request, response: Response):
-
-    url = "https://kapi.kakao.com/v1/user/unlink"
-    KEY = request.cookies['kakao']
-    headers = dict(Authorization=f"Bearer {KEY}")
-    _res = requests.post(url,headers=headers)
-    response.set_cookie(key="kakao", value=None)
-    return {"logout": _res.json()}
-'''
 
 class Item(BaseModel):
     apikey: str
@@ -121,7 +109,6 @@ class Item(BaseModel):
     cano: int
     acnt: int
     quantity: int
-    uuid: str
 
 '''
 005930 : 삼성전자

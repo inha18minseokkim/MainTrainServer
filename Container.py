@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Request, Query
 import DBManager
 
 import AccountManager
@@ -31,20 +31,15 @@ async def fortest(par: str):
     return par
 
 class U(BaseModel):
-    uuid: str
-
-class UT(BaseModel):
-    uuid: str
     target: str
 
-class UR(BaseModel):
-    uuid: str
-    tostr: str
+class UI(BaseModel):
+    target: int
 
 #유저 정보 관련 API
 @router.post('/getUserInfo', tags=['사용자정보 관련'])
 async def getUserInfo(item: U):
-    uuid = item.uuid
+    uuid = request.headers.get('uuid')
     global maincontainer
     maincontainer = MainContainer()
     logger.debug(maincontainer)
@@ -75,8 +70,10 @@ async def getUserInfo(item: U):
                                  'assticdrct : 자산증감수익률<br>'
                                  'curaccount : 현재 가지고 있는 자산들의 정보<br>'
                                  'favlist : 현재 유저가 저장해놓은 즐겨찾기 리스트, 콤마로 구분한다. ex) "삼성전자,LG,삼성전자우,KODEX 은행" ')
-async def getUserAccount(item: U):
-    uuid = item.uuid
+async def getUserAccount(request: Request):
+    logger.debug("nowwww")
+    uuid = request.headers.get('uuid')
+    logger.debug(uuid)
     global maincontainer
     maincontainer = MainContainer()
     logger.debug(maincontainer)
@@ -94,8 +91,8 @@ async def getUserAccount(item: U):
     return tmpres
 
 @router.post('/setUserNickName', name = '사용자 닉네임 수정',tags=['사용자정보 관련'], description = 'uuid에 해당하는 사용자 닉네임 수정')
-async def setUserNickName(item: UT):
-    uuid = item.uuid
+async def setUserNickName(request: Request, item: U):
+    uuid = request.headers.get('uuid')
     target = item.target
     global maincontainer
     maincontainer = MainContainer()
@@ -106,8 +103,8 @@ async def setUserNickName(item: UT):
     if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
     return resp
 @router.post('/setUserApiKey', name = '사용자 apikey 수정', tags=['사용자정보 관련'])
-async def setUserApiKey(item: UT):
-    uuid = item.uuid
+async def setUserApiKey(request: Request, item: U):
+    uuid = request.headers.get('uuid')
     target = item.target
     global maincontainer
     maincontainer = MainContainer()
@@ -118,8 +115,8 @@ async def setUserApiKey(item: UT):
     if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
     return resp
 @router.post('/setUserSecret', name = '사용자 secret 수정',tags=['사용자정보 관련'])
-async def setUserSecret(item: UT):
-    uuid = item.uuid
+async def setUserSecret(request: Request, item: U):
+    uuid = request.headers.get('uuid')
     target = item.target
     global maincontainer
     maincontainer = MainContainer()
@@ -130,8 +127,8 @@ async def setUserSecret(item: UT):
     if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
     return resp
 @router.post('/setUserQuantity',name = '사용자 운용금액 한도 수정', tags=['사용자정보 관련'])
-async def setUserQuantity(item: UT):
-    uuid = item.uuid
+async def setUserQuantity(request: Request, item: UI):
+    uuid = request.headers.get('uuid')
     target = item.target
     global maincontainer
     maincontainer = MainContainer()
@@ -142,8 +139,8 @@ async def setUserQuantity(item: UT):
     if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
     return resp
 @router.post('/setUserCANO',name = '사용자 CANO 수정', tags=['사용자정보 관련'])
-async def setUserCANO(item: UT):
-    uuid = item.uuid
+async def setUserCANO(request: Request, item: UI):
+    uuid = request.headers.get('uuid')
     target = item.target
     global maincontainer
     maincontainer = MainContainer()
@@ -154,8 +151,8 @@ async def setUserCANO(item: UT):
     if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
     return resp
 @router.post('/setUserACNT',name = '사용자 ACNT 수정', tags=['사용자정보 관련'])
-async def setUserACNT(item: UT):
-    uuid = item.uuid
+async def setUserACNT(request: Request, item: UI):
+    uuid = request.headers.get('uuid')
     target = item.target
     global maincontainer
     maincontainer = MainContainer()
@@ -168,9 +165,9 @@ async def setUserACNT(item: UT):
 @router.post('/setUserRatio',name = '사용자 설정 비율 수정', tags=['사용자정보 관련'],
             description='유의하셔야 할 점 : 반드시 코드:비율 형태를 지켜주세요. tostr은 딕셔너리,json자료형을 문자열형태로 받습니다. 모든 비율의 합은 1이어야 합니다.<br>'
                         'ex) { "005930" : "0.5", "003550" : "0.3", "091170" : "0.2" }')
-async def setUserRatio(item: UR):
-    uuid = item.uuid
-    tostr = item.tostr
+async def setUserRatio(request: Request, item: U):
+    uuid = request.headers.get('uuid')
+    tostr = item.target
     global maincontainer
     maincontainer = MainContainer()
     sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()
@@ -187,9 +184,12 @@ async def setUserRatio(item: UR):
             description='원본 데이터를 모두 지우는 작업이기 때문에 api를 호출 할 때 반드시 리스트를 넘겨주세요'
                         ' ex) 삼성전자,LG,삼성전자우,KODEX%20은행 에서 삼성전자를 없애고싶으면 LG,삼성전자우,KODEX%20은행'
                         '를 넘겨주셔야 합니다')
-async def setUserFavList(item: UR):
-    uuid = item.uuid
-    tostr = item.tostr
+async def setUserFavList(request: Request, item: U):
+    uuid = request.headers.get('uuid')
+    tostr = item.target
+    logger.debug("dddddddddddd", uuid, tostr)
+    logger.debug(uuid)
+    logger.debug(tostr)
     global maincontainer
     maincontainer = MainContainer()
     sesdb: DBManager.SessionDBManager = maincontainer.sessiondb_provider()

@@ -176,6 +176,7 @@ class SessionDBManager:
         url = f"{Declaration.Base_URL}/{path}"
         logger.debug(f"{url}로 보안인증  키 요청")
         tokenres = requests.post(url, headers=headers, data=json.dumps(body)).json()
+        logger.debug(tokenres)
         res = tokenres['access_token']
         logger.debug(f"token 생성 완료, 현재 계정 정보 {res}")
         return res
