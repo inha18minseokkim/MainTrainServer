@@ -16,7 +16,6 @@ import Container
 from Container import maincontainer
 from starlette.middleware.cors import CORSMiddleware
 # session 인증 안받는 api 목록
-whiteList = ['/login', '/auth', ] 
 
 app = FastAPI()
 app.include_router(investment.router, prefix='')
@@ -51,7 +50,6 @@ async def on_app_start() -> None:
     scheduler: PeriodicTradingRoutine.TradeScheduler = maincontainer.scheduler_provider()
     threading.Thread(target = PeriodicTradingRoutine.background, args = (scheduler,)).start()
 
-'''
 @app.middleware("http")
 async def request_middleware(request: Request, call_next):
     start_time = time.time()
@@ -64,16 +62,18 @@ async def request_middleware(request: Request, call_next):
 
     logger.debug(f"[{request_id}] Request Started")
 
+    sesdb = maincontainer.sessiondb_provider()
+    body = await request.json()
+    if 'uuid' in body:
+        if sesdb.validateToken(body['uuid'])['code'] == 0:
+            return JSONResponse(content={"Error": "UUID is not found"}, status_code=401)
+        
+    return await call_next(request)
+    process_time = time.time() - start_time
 
-    # 모든 api에 세션 인증 일괄 적용
-    
-    if reuqest['path'] not in whilteList:
-        body = await request.json()
-        seesionId = body.get('access')
-        if DBManager.getSessionInfo(seesionId) == 0:
-            return JSONResponse(content={"error": "Unauthorized"}, status_code=401)
-    
+    logger.debug(f"[{request_id}] Request Ended {process_time} Seconds")
 
+    '''
     try:
         return await call_next(request)
 
@@ -85,4 +85,4 @@ async def request_middleware(request: Request, call_next):
         assert request_id_contextvar.get() == request_id
         process_time = time.time() - start_time
         logger.debug(f"[{request_id}] Request Ended {process_time} Seconds")
-'''
+    '''
