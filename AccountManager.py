@@ -84,6 +84,7 @@ class Account:
         path = "/uapi/domestic-stock/v1/trading/inquire-balance"
         url = f"{Declaration.Base_URL}/{path}"
         res = requests.get(url, headers=headers, params=params).json()
+        logger.debug(res)
         res1 = res['output1']
         res2 = res['output2'][0]
         logger.debug(res2)

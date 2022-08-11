@@ -139,7 +139,7 @@ async def setUserQuantity(request: Request, item: UI):
     if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
     return resp
 @router.post('/setUserCANO',name = '사용자 CANO 수정', tags=['사용자정보 관련'])
-async def setUserCANO(request: Request, item: UI):
+async def setUserCANO(request: Request, item: U):
     uuid = request.headers.get('uuid')
     target = item.target
     global maincontainer
@@ -151,7 +151,7 @@ async def setUserCANO(request: Request, item: UI):
     if rescode == 0: resp['msg'] = f'{uuid} {target} 수정 실패'
     return resp
 @router.post('/setUserACNT',name = '사용자 ACNT 수정', tags=['사용자정보 관련'])
-async def setUserACNT(request: Request, item: UI):
+async def setUserACNT(request: Request, item: U):
     uuid = request.headers.get('uuid')
     target = item.target
     global maincontainer
