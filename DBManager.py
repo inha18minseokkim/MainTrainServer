@@ -177,7 +177,14 @@ class SessionDBManager:
         logger.debug(f"{url}로 보안인증  키 요청")
         tokenres = requests.post(url, headers=headers, data=json.dumps(body)).json()
         logger.debug(tokenres)
-        res = tokenres['access_token']
+        try:
+            tmp = tokenres['access_token']
+        except KeyError:
+            logger.debug('appkey secret 값이 유효하지 않음')
+            return {'code' : 0, 'msg' : 'appkey secret 값이 유효하지 않음'}
+        res = {}
+        res[TOKEN] = tokenres['access_token']
+        res['code'] = 1
         logger.debug(f"token 생성 완료, 현재 계정 정보 {res}")
         return res
     def validateToken(self, userUUID: uuid.UUID): #한국투자로 리퀘스트 전 토큰 검증 하고 수명이 1시간 이내면 토큰 갱신, 1시간 넘게 남았으면 아무것도 안함
@@ -187,6 +194,23 @@ class SessionDBManager:
             logger.debug('uuid에 해당하는 세션 찾기 실패')
             return {'code' : 0, 'msg': 'uuid에 해당하는 세션 찾기 실패'}
         res = res[0]
+        #createSession이후 아직까지 토큰이 생성된게 아니라면
+        try:
+            tmp = res[TOKEN]
+        except:
+            curkakaoid = res[KAKAOID]
+            curapikey = res[APIKEY]
+            cursecret = res[SECRET]
+            newtoken = self.getTokenFromServer(curkakaoid,curapikey,cursecret)
+            if newtoken['code'] == 0:
+                return {'code' : 2, 'msg' : '해당 유저의 appkey secret 잘못됨'}
+            res[TOKEN] = newtoken[TOKEN]
+            idquery = {UUID: userUUID}
+            logger.debug(f'{userUUID} 유효함 but 아직 토큰이 생성되지 않아 생성중...')
+            values = {"$set": {TOKEN : newtoken}}
+            self.sessiondb.user.update_one(idquery,values)
+            logger.debug(f'생성된 token 세션DB에 적용 완료 {newtoken}')
+
         curtoken: JWTManager = JWTManager(res[TOKEN]) #token 정보 가져와서 JWTManager클래스로 변환
         curkakaoid = res[KAKAOID]
         curapikey = res[APIKEY]
@@ -220,7 +244,8 @@ class SessionDBManager:
         # tokenres = requests.post(url, headers=headers, data=json.dumps(body)).json()
         # res[TOKEN] = tokenres['access_token']
         # logger.debug(f"token 생성 완료, 현재 계정 정보 {res[APIKEY]} {res[SECRET]} {kakaotoken} {res[TOKEN]} {res[UUID]}")
-        res[TOKEN] = self.getTokenFromServer(kakaoid, res[APIKEY],res[SECRET])
+        #res[TOKEN] = self.getTokenFromServer(kakaoid, res[APIKEY],res[SECRET])
+        #일단 세션 생성할때 토큰을 요청받지는 말자
 
         #이미 세션이 있는 경우(다른 기기에서 로그인중인데 또 기기에서 로그인 -> 일단 단일세션으로 생각하자
         test = list(self.sessiondb.user.find({KAKAOID:kakaoid}))
