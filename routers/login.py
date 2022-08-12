@@ -56,13 +56,15 @@ def kakao():
     response = RedirectResponse(url)
     return response
 
+class Code(BaseModel):
+    code: str
+
 # 클라이언트에서 카카오 로그인 후 code 전송
 @router.post('/auth')
-async def kakaoAuth(request: Request):
+async def kakaoAuth(item: Code):
 
-    body = await request.json()
     auth_info = {}
-    auth_info['access_token'] = body['code']
+    auth_info['access_token'] = item.code
     '''
     # code = item.code
     code = body['code']
