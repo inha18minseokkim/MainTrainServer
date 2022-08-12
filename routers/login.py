@@ -61,16 +61,23 @@ def kakao():
 async def kakaoAuth(request: Request):
 
     body = await request.json()
+    auth_info = {}
+    auth_info['access_token'] = body['code']
+    '''
     # code = item.code
     code = body['code']
     # 전달받은 authorization code를 통해서 access_token을 발급
+    '''
     oauth = Oauth()
+    '''
     auth_info = oauth.auth(code)
+    
 
     # error 발생
     if "error" in auth_info:
         logger.debug(auth_info)
         return JSONResponse(content={'message': 'authentication fail', **auth_info}, status_code=404)
+    '''
 
     user = oauth.userinfo("Bearer " + auth_info['access_token'])
     '''
