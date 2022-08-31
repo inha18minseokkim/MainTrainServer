@@ -106,9 +106,11 @@ class ServerDBManager:
             self.serverdb.user.update_one(idquery,values)
             return {}
         logger.debug(res[0][STKLST])
-        if res[0][STKLST] == '':
+        # if res[0][STKLST] == '':
+        try:
+            res = {k: float(v) for k, v in dict(literal_eval(res[0][STKLST])).items()}
+        except:
             return {'code' : 0, 'msg' : '포트폴리오 정보가 없음'}
-        res = {k: float(v) for k, v in dict(literal_eval(res[0][STKLST])).items()}
         res['code'] = 1
         logger.debug('kakaoid에 대한 주가 비율 정보를 요청함', res)
         return res
