@@ -1,20 +1,14 @@
-import asyncio
 import threading
 
-from fastapi import FastAPI, Request, BackgroundTasks
-import json,requests,random,uuid,contextvars,time
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
+import contextvars
 from loguru import logger
 import DBManager
 import PeriodicTradingRoutine
-import Stock_Price
-import AccountManager
 import Declaration
 from routers import investment, test, login, account
-from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 from dependencies import get_uuid, get_sesdb, get_serdb, get_scheduler
-# session 인증 안받는 api 목록
 
 app = FastAPI()
 app.include_router(investment.router, prefix='')

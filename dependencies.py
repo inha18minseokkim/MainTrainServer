@@ -24,9 +24,6 @@ class MainContainer(containers.DeclarativeContainer):
 container = MainContainer()
 
 
-oauth2_scheme = OAuth2AuthorizationCodeBearer(tokenUrl="token", authorizationUrl="authorization")
-
-
 async def get_sesdb():
     return container.sessiondb_provider()
 
@@ -37,6 +34,9 @@ async def get_serdb():
 
 async def get_scheduler():
     return container.scheduler_provider()
+
+
+oauth2_scheme = OAuth2AuthorizationCodeBearer(tokenUrl="token", authorizationUrl="authorization")
 
 
 async def get_uuid(sesdb = Depends(get_sesdb), token: str = Depends(oauth2_scheme)):

@@ -1,14 +1,14 @@
-from fastapi import APIRouter, Request, Query, Depends
-import DBManager
 
-import AccountManager
-import uuid
-import Declaration
 from loguru import logger
-from dependency_injector import containers, providers
+import uuid
+
+from fastapi import APIRouter, Request, Query, Depends
 from pydantic import BaseModel
 
-import PeriodicTradingRoutine
+
+import DBManager
+import AccountManager
+import Declaration
 from dependencies import get_uuid, get_sesdb, get_serdb, get_scheduler
 
 router = APIRouter()
