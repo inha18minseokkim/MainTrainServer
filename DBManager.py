@@ -146,6 +146,8 @@ class ServerDBManager:
 
 class JWTManager:
     def __init__(self, code: str):
+        logger.debug(f"token: {code}")
+        if 'token' in code: code = code['token']
         decoded = jwt.decode(code, options={"verify_signature" : False})['exp']
         self.expdate = datetime.datetime.fromtimestamp(decoded)
     def isBeUpdated(self):

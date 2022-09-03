@@ -1,9 +1,9 @@
 from typing import Optional
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Request, Response, Depends
 from fastapi.responses import RedirectResponse, JSONResponse
 from loguru import logger
-from Container import MainContainer
 from pydantic import BaseModel
+from dependencies import get_sesdb, get_serdb, get_scheduler
 import requests
 import Declaration
 import uuid
@@ -61,34 +61,19 @@ class Code(BaseModel):
 
 # 클라이언트에서 카카오 로그인 후 code 전송
 @router.post('/auth')
-async def kakaoAuth(item: Code):
+async def kakaoAuth(item: Code, serdb = Depends(get_serdb), sesdb = Depends(get_sesdb)):
 
     auth_info = {}
     auth_info['access_token'] = item.code
-    '''
-    # code = item.code
-    code = body['code']
-    # 전달받은 authorization code를 통해서 access_token을 발급
-    '''
     oauth = Oauth()
-    '''
-    auth_info = oauth.auth(code)
-    
-
-    # error 발생
-    if "error" in auth_info:
-        logger.debug(auth_info)
-        return JSONResponse(content={'message': 'authentication fail', **auth_info}, status_code=404)
-    '''
-
     user = oauth.userinfo("Bearer " + auth_info['access_token'])
-    '''
-    user = {'id': 2328479814, 'connected_at': '2022-07-05T09:39:01Z', 'properties': {'nickname': '박성욱'},
-            'kakao_account': {'profile_nickname_needs_agreement': False, 'profile': {'nickname': '박성욱'}}}
-    '''
+    
     logger.debug(user)
     
-    kakao_account = user["kakao_account"]
+    try:
+        kakao_account = user["kakao_account"]
+    except:
+        return {'err' : '카카오 API 닉네임 정보수집 체크 안됨'}
     profile = kakao_account["profile"]
     name = profile["nickname"]
     id = str(user['id'])
@@ -97,48 +82,14 @@ async def kakaoAuth(item: Code):
     else:
         email = f"{name}@kakao.com"
 
-    serverdb = MainContainer().serverdb_provider()
-    sessiondb = MainContainer().sessiondb_provider()
-
-    user = serverdb.getUserInfoFromServer(id) # db에서 id로 유저 검색해서 대입
+    user = serdb.getUserInfoFromServer(id) # db에서 id로 유저 검색해서 대입
 
     if user['code'] == 0: # 만약 회원가입이 안 된 유저라면
         # db 에 user 추가
-        serverdb.createAccount(id, name, apikey=Declaration.appKey, secret=Declaration.secret, cano='50067576', acnt='01', quantity=1000000)
+        serdb.createAccount(id, name, apikey=Declaration.appKey, secret=Declaration.secret, cano='50067576', acnt='01', quantity=1000000)
     logger.debug(f'{id} 세션 만들기 시작')
     # 세션에 user 추가 로직 구현
-    uid = sessiondb.createSession(id, 'dummy', serverdb)['uuid']
+    uid = sesdb.createSession(id, 'dummy', serdb)['uuid']
 
     # return {'uuid' : uid, 'registration' : user['code']^1, 'name': name}
     return {'uuid' : uid, 'registration': 1, 'name': name}
-
-class Item(BaseModel):
-    apikey: str
-    secret: str
-    cano: int
-    acnt: int
-    quantity: int
-
-'''
-005930 : 삼성전자
-request body
-{
-    "interval": "YEAR",
-    "code": "005930",
-    "start": "2021"
-}
-'''
-@router.post("/registration")
-async def getChart(request: Request, item: Item):
-    # logger.debug(item)
-    logger.debug(request)
-    body = await request.json()
-    logger.debug(body)
-    logger.debug(item)
-    '''
-    for i in request:
-        logger.debug(i)
-        logger.debug(request[i])'''
-    
-    # return item
-    return item
