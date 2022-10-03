@@ -92,4 +92,4 @@ async def kakaoAuth(item: Code, serdb = Depends(get_serdb), sesdb = Depends(get_
     uid = sesdb.createSession(id, 'dummy', serdb)['uuid']
 
     # return {'uuid' : uid, 'registration' : user['code']^1, 'name': name}
-    return {'uuid' : uid, 'registration': 1, 'name': name}
+    return {'uuid' : uid, 'registration': 0, 'name': name}
