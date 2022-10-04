@@ -23,6 +23,20 @@
           </mappings>
         </serverdata>
       </paths>
+      <paths name="ubuntu@54.219.85.46:22">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="ubuntu@54.219.85.46:22 (2)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
       <paths name="ubuntu@haniumproject.com:22 key">
         <serverdata>
           <mappings>

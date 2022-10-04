@@ -91,7 +91,7 @@ class ServerDBManager:
         self.serverdb.user.delete_one(idquery)
         return {'code': 1}
 
-    def getStockRatio(self, kakaoid: str):  # kakaoid유저가 설정해놓은 주가 비율을 가져옴
+    def getStockRatio(self, kakaoid: str)-> dict:  # kakaoid유저가 설정해놓은 주가 비율을 가져옴
         logger.debug(f'카카오아이디로 비율 가져옴 {kakaoid},{type(kakaoid)}')
         cursor = self.serverdb.user.find({KAKAOID: kakaoid})
         res = list(cursor)
@@ -106,11 +106,9 @@ class ServerDBManager:
             self.serverdb.user.update_one(idquery,values)
             return {}
         logger.debug(res[0][STKLST])
-        # if res[0][STKLST] == '':
-        try:
-            res = {k: float(v) for k, v in dict(literal_eval(res[0][STKLST])).items()}
-        except:
+        if len(res[0][STKLST]) == 0:
             return {'code' : 0, 'msg' : '포트폴리오 정보가 없음'}
+        res = res[0][STKLST]
         res['code'] = 1
         logger.debug('kakaoid에 대한 주가 비율 정보를 요청함', res)
         return res
@@ -146,8 +144,6 @@ class ServerDBManager:
 
 class JWTManager:
     def __init__(self, code: str):
-        logger.debug(f"token: {code}")
-        if 'token' in code: code = code['token']
         decoded = jwt.decode(code, options={"verify_signature" : False})['exp']
         self.expdate = datetime.datetime.fromtimestamp(decoded)
     def isBeUpdated(self):
@@ -211,10 +207,11 @@ class SessionDBManager:
             res[TOKEN] = newtoken[TOKEN]
             idquery = {UUID: userUUID}
             logger.debug(f'{userUUID} 유효함 but 아직 토큰이 생성되지 않아 생성중...')
-            values = {"$set": {TOKEN : newtoken}}
+            values = {"$set": {TOKEN : newtoken[TOKEN]}}
             self.sessiondb.user.update_one(idquery,values)
             logger.debug(f'생성된 token 세션DB에 적용 완료 {newtoken}')
-
+        logger.debug(res)
+        logger.debug(res[TOKEN])
         curtoken: JWTManager = JWTManager(res[TOKEN]) #token 정보 가져와서 JWTManager클래스로 변환
         curkakaoid = res[KAKAOID]
         curapikey = res[APIKEY]
@@ -264,6 +261,7 @@ class SessionDBManager:
 
     def isSessionAvailable(self,userUUID: uuid.UUID):  # api를 호출 하기 전 해당 세션이 있는지
         cursor = self.sessiondb.user.find({UUID: userUUID})
+        logger.debug(f"{cursor} {userUUID}")
         res = list(cursor)
         # 카카오아이디를 파라미터로 받아서 현재 세션db에 존재하면 1, 존재하지않으면 0 리턴
         if len(res) == 0:

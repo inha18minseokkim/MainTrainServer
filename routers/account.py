@@ -12,7 +12,9 @@ import Declaration
 from dependencies import get_uuid, get_sesdb, get_serdb, get_scheduler
 
 router = APIRouter()
-
+@router.get('/asdf')
+async def asdf():
+    return "ASDFASDFASFASDF"
 @router.get('/test?param={par}')
 async def fortest(par: str):
     return par
@@ -25,7 +27,17 @@ class U(BaseModel):
 class UI(BaseModel):
     target: int
 
-
+@router.get('/getUserInfo2')
+async def getUserInfo2(uuid: str, sesdb = Depends(get_sesdb), serdb = Depends(get_serdb)):
+    res = sesdb.getSessionInfo(uuid)
+    if res['code'] == 0:
+        logger.debug(f'{uuid} : 세션이 유효하지 않거나 세션 정보와 맞는 계정이 없습니다')
+        return {'code': 0, 'msg': f'{uuid} : 세션이 유효하지 않거나 세션 정보와 맞는 계정이 없습니다'}
+    tmpkakaoid = res[DBManager.KAKAOID]
+    tmpaccount: AccountManager = AccountManager.Account(tmpkakaoid, serdb)
+    tmpres: dict = tmpaccount.getAccountInfoDictionary()
+    tmpres['code'] = 1
+    return tmpres
 #유저 정보 관련 API
 @router.post('/getUserInfo', tags=['사용자정보 관련'])
 async def getUserInfo(item: U, uuid = Depends(get_uuid), sesdb = Depends(get_sesdb)):
@@ -59,6 +71,7 @@ async def getUserInfo(item: U, uuid = Depends(get_uuid), sesdb = Depends(get_ses
 
 async def getUserAccount(request: Request, uuid = Depends(get_uuid), sesdb = Depends(get_sesdb), serdb = Depends(get_serdb)):
     res = sesdb.getSessionInfo(uuid)
+    logger.debug(f"{res} {uuid}")
     if res['code'] == 0:
         logger.debug(f'{uuid} : 세션이 유효하지 않거나 세션 정보와 맞는 계정이 없습니다')
         return {'code' : 0, 'msg' : f'{uuid} : 세션이 유효하지 않거나 세션 정보와 맞는 계정이 없습니다'}
@@ -162,6 +175,9 @@ async def getUserInfo(serdb = Depends(get_serdb)):
     for i in res:
         del i['_id']
     return res
+
+
+
 
 
 if __name__ == "__main__":#Unit test를 위한 공간

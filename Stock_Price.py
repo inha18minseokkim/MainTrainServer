@@ -1,6 +1,7 @@
 import Declaration
 import requests
 from loguru import logger
+import FinanceDataReader as fdr
 def getStockInfo(code):
     #global appKey, secret, token, Base_URL
     logger.debug(f"{code}에 대한 주가 정보를 요청함")
@@ -22,3 +23,8 @@ def getStockInfo(code):
     res = requests.get(url,headers=headers,params=params).json()
     logger.debug(res)
     return res
+def getStockCurPrice(code: str):
+    df = fdr.DataReader(code)['Close']
+    return int(df[-1])
+if __name__ == "__main__":
+    getStockCurPrice('005930')

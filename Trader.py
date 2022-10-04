@@ -9,6 +9,9 @@ import pydantic
 from loguru import logger
 from dependency_injector.providers import Singleton
 
+import Stock_Price
+
+
 class TradeManager:
     def __init__(self):
         return
@@ -54,7 +57,7 @@ class TradeManager:
         url = f"{Declaration.Base_URL}/{path}"
         res = requests.post(url, headers=headers, data=json.dumps(data)).json()
         res['code'] = 1
-        logger.debug(res)
+        logger.debug(f"{res} 종목 : {code} 수량 : {quantity}")
         return res
 
     def sellMarketPrice(self, account: AccountManager.Account, code: str, quantity: int):  # 현금 주식 매도 주문
@@ -147,8 +150,11 @@ class TradeManager:
         buyrequest = []
         sellrequest = []
         for k,v in targetaccount.items(): #targetaccount -> 목표로 하는 잔고정보 tmpaccount -> 현재 가지고 있는 잔고정보
-            diff = v-tmpaccount[k]
-            curprice = account.curpricedic[k] #이거 가격 불러오는 모듈 구현해야됨
+            try:
+                diff = v-tmpaccount[k]
+            except:
+                diff = v
+            curprice = Stock_Price.getStockCurPrice(k)#이거 가격 불러오는 모듈 구현해야됨
             if diff > 0:
                 logger.debug(k,'를',diff,'만큼 더 사야됨')
                 if diff//curprice != 0:

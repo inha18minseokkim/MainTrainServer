@@ -1,8 +1,9 @@
 import threading
 
-from fastapi import FastAPI
+from fastapi import FastAPI ,Request
 import contextvars
 from loguru import logger
+
 import DBManager
 import PeriodicTradingRoutine
 import Declaration
@@ -41,6 +42,13 @@ async def on_app_start() -> None:
     logger.debug(tmpuuid)
     threading.Thread(target = PeriodicTradingRoutine.background, args = (scheduler,)).start()
 
+@app.post('/onTrainComplete')
+async def onTradeComplete(request: Request):
+    kakaoid = request.headers.get('kakaoid')
+    logger.debug(kakaoid)
+    scheduler = await get_scheduler()
+    res = scheduler.addNewAccount(kakaoid)
+    return res
 '''
 @app.middleware("http")
 async def request_middleware(request: Request, call_next):
@@ -57,6 +65,7 @@ async def request_middleware(request: Request, call_next):
 
     if 'uuid' in request.headers.keys():
         uid = request.headers.get('uuid')
+        logger.debug(uid)
         if sesdb.validateToken(uid)['code'] == 0:
             return JSONResponse(content={"Error": "UUID is not found"}, status_code=401)
     

@@ -57,12 +57,32 @@ class TradeScheduler:
         self.savetoServerDB()
         return {'code' : 1}
     def moveToNext(self):#해당 날짜가 영업일이 아닌 경우 다음 큐로 옮긴다.
-        todaylist: list[(str,int)] = self.schedulerqueue[self.idx]
+        todaylist: list[(str,int)] = self.schedulerqueue[self.idx]#얕은복사임
         targetlist: list[(str,int)] = self.schedulerqueue[(self.idx + 1) % 300]
         #todaylist의 요소들을 targetlist로 모두 옮겨
         while len(todaylist) == 0:
             curkakaoid , curlazyday = todaylist.pop(0)
             targetlist.append((curkakaoid,curlazyday+1))
+        return {'code' : 1}
+    def addNewAccount(self,kakaoid):
+        trader: Trader.TradeManager = Trader.TradeManager()
+        curaccount: AccountManager.Account = AccountManager.Account(kakaoid, self.serverdb)
+        if isBusinessDay() == False: #오늘 영업일이 아닌경우 트레이드를 하지않고 내일로 미뤄
+            logger.debug(f"{kakaoid} : 오늘 영업일이 아니라 거래를 못해 ㅎㅎ;;")
+            nextidx: int = (self.idx + 1) % 300
+            targetlist: list[(str, int)] = self.schedulerqueue[nextidx]
+            targetlist.append((kakaoid, 0))
+            return {'code' : 1}
+    # 오늘 루틴이 끝났을 수 있기 때문에 오늘 추가되는건 따로 돌리고 큐에 넣는다
+        rescode: int = trader.rebalance(curaccount)
+        if rescode == 1:
+            logger.debug(f'{kakaoid} 리밸런싱 완료')
+        else:
+            logger.debug(f'{kakaoid} 리밸런싱 중 문제가 생김')
+    # 현재idx 큐가 아니라, 다음 큐(idx+period)에 추가해야된다
+        nextidx : int = (self.idx + curaccount.period) % 300
+        targetlist: list[(str,int)] = self.schedulerqueue[nextidx]
+        targetlist.append((kakaoid,0))
         return {'code' : 1}
 def background(scheduler : TradeScheduler):
     #main 루프 백그라운드에서 돌아갈 함수. 24시간마다 scheduler 큐의 각 인덱스 하나씩 순회하게 만드는 것이 목표.
